@@ -1,13 +1,14 @@
 # Cro Bot
 
 A discord bot used for my personal usage. Currently a work in progress.
+
 Avatar for this project is Cro from [ChronoClock](https://www.youtube.com/watch?v=oWz-ROOOSUE)
 
 ## Features
 
 The current main feature includes a search for sdvx.in. More will be added as time goes along.
 
-### Prerequisites
+## Prerequisites
 
 There are quite a few requirements for this bot:
 * Python 3.4+ ; Lowest version tested: 3.5.2
