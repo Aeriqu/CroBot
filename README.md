@@ -26,5 +26,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ## Acknowledgments
 
 * [sym3tri for their Japanese regex](https://gist.github.com/sym3tri/980083)
-* [andrew12 for helping add core things](https://github.com/andrew12)
-* KSM Discord
+* [andrew12 for helping add core things and hosting the bot on his server](https://github.com/andrew12)
+* [KSM Discord](https://discord.gg/w4FPaRv)

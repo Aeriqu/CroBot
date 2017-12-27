@@ -33,7 +33,7 @@ class Song():
             self.maxDif = md
 
     def all(self):
-        return self.name+' '+self.nameRomanized+' '+self.nameTranslated+' '+self.linkNov+' '+self.linkAdv+' '+self.linkExh+' '+self.linkMax
+        return self.name+' '+self.nameRomanized+' '+self.nameRomNoSpace+' '+self.nameTranslated+' '+self.linkNov+' '+self.linkAdv+' '+self.linkExh+' '+self.linkMax
 
 # Database setup
 
@@ -178,54 +178,47 @@ def recreateDB():
     finally:
         session.close()
 
+# I had issues passing these values directly to query search, so I'm using global
+songList, songResultList = [], []
+resultValue = 0.1
+
 def query(search):
     jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B'  # https://gist.github.com/ryanmcgrath/982242
     session = sessionMaker()
-    songList, songResultList = [], []
-    resultValue = 0
+    global songList
+    global songResultList
 
     for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
-                                                                      Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif):
+                                                                                   Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif):
         songList.append(Song(name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif))
 
     # If text contains japanese, it is most likely the title / partial official title
     if re.search(jpRegex, search) is not None:
-        for song in songList:
-            fuzzValue = fuzz.token_set_ratio(song.name, search)
-            if fuzzValue > resultValue:
-                resultValue = fuzzValue
-                songResultList = [song]
-            elif fuzzValue == resultValue and song in songResultList is None:
-                songResultList.append(song)
+        querySearcher(search, 0)
 
     else:
         # Search through the romanized list
-        for song in songList:
-            fuzzValue = fuzz.token_set_ratio(song.nameRomanized, search)
-            if fuzzValue > resultValue:
-                resultValue = fuzzValue
-                songResultList = [song]
-            elif fuzzValue == resultValue and song in songResultList is None:
-                songResultList.append(song)
-
-        # Search through the romanized list no space
-        for song in songList:
-            fuzzValue = fuzz.token_set_ratio(song.nameRomNoSpace, search)
-            if fuzzValue > resultValue:
-                resultValue = fuzzValue
-                songResultList = [song]
-            elif fuzzValue == resultValue and song in songResultList is None:
-                songResultList.append(song)
-
+        querySearcher(search, 1)
+        # Search through the romanized list with no spaces
+        querySearcher(search, 2)
         # Search through the translated list
-        for song in songList:
-            fuzzValue = fuzz.token_set_ratio(song.nameTranslated, search)
-            if fuzzValue > resultValue:
-                resultValue = fuzzValue
-                songResultList = [song]
-            elif fuzzValue == resultValue and song.name in songResultList is None:
-                songResultList.append(song)
+        querySearcher(search, 3)
 
     session.close()
 
     return songResultList
+
+def querySearcher(search, type):
+    global songList
+    global songResultList
+    global resultValue
+    for song in songList:
+        fuzzValue = fuzz.token_set_ratio(song.name if type == 0 else
+                                         song.nameRomanized if type == 1 else
+                                         song.nameRomNoSpace if type == 2 else
+                                         song.nameTranslated, search)
+        if fuzzValue > resultValue:
+            resultValue = fuzzValue
+            songResultList = [song]
+        elif fuzzValue == resultValue and song not in songResultList:
+            songResultList.append(song)
