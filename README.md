@@ -17,6 +17,7 @@ There are quite a few requirements for this bot:
 * [retrying](https://pypi.python.org/pypi/retrying) ; Version used for this bot: 1.3.3
 * [googletrans](https://pypi.python.org/pypi/googletrans) ; Version used for this bot: 2.2.0
 * [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy) ; Version used for this bot: 0.16.0
+* [unidecode](https://pypi.python.org/pypi/Unidecode) ; Version used for this bot: 0.04.21
 
 ## License
 
