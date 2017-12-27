@@ -3,9 +3,17 @@ import discord
 import re
 import sdvxCharts
 
+INTERVAL = 30
+last_command_time = 0
+
 async def on_message(message, client):
+    global last_command_time
     # sdvx.in functionality
     if message.content.startswith('!sdvxin'):
+        now = time.time()
+        if now - last_command_time < INTERVAL:
+            return
+        last_command_time = now
         name = re.search(r'(!sdvxin\s)(.*)', message.content).group(2)
         try:
             songList = sdvxCharts.query(name)
