@@ -1,7 +1,9 @@
 import discord
 
-import re
 import sdvxCharts
+
+import re
+import time
 
 INTERVAL = 30
 last_command_time = 0
