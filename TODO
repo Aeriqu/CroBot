@@ -1,0 +1,9 @@
+TODO:
+	General:
+		* Modularize database searches
+		* Minimum fuzzy ratio to get rid of irrelevant searches
+
+	SDVX:
+		* Command based database update
+		* Add chart images to embed
+		* Search by artist/effector
