@@ -191,17 +191,19 @@ async def recreateDB():
 
 # I had issues passing these values directly to query search, so I'm using global
 songList, songResultList = [], []
-resultValue = 0.1
+resultValue = 0
 
 async def query(search):
     jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B'  # https://gist.github.com/ryanmcgrath/982242
     session = sessionMaker()
     global songList
     global songResultList
+    global resultValue
 
     # Clear out on new query request
     del songList[:]
     del songResultList[:]
+    resultValue = 0
 
     for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
                                                                                    Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif):
@@ -227,6 +229,7 @@ def querySearcher(search, type):
     global songList
     global songResultList
     global resultValue
+
     for song in songList:
         fuzzValue = fuzz.token_set_ratio(song.name if type == 0 else
                                          song.nameRomanized if type == 1 else
