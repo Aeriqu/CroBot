@@ -9,6 +9,7 @@ from unidecode import unidecode
 import html.parser
 
 from fuzzywuzzy import fuzz
+import asyncio
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -62,7 +63,7 @@ sessionMaker = sessionmaker(bind=engine)
 
 # Initial DB set up
 @retry(stop_max_attempt_number=7, wait_fixed=500)
-def init(session):
+async def init(session):
     print('Starting database entry')
 
     sortList = ['http://sdvx.in/sort/sort_a.js', 'http://sdvx.in/sort/sort_k.js', 'http://sdvx.in/sort/sort_s.js',
@@ -70,28 +71,32 @@ def init(session):
                 'http://sdvx.in/sort/sort_m.js', 'http://sdvx.in/sort/sort_y.js', 'http://sdvx.in/sort/sort_r.js', 'http://sdvx.in/sort/sort_w.js']
 
     for item in sortList:
-        parseSort(item, session)
+        await parseSort(item, session)
 
 @retry(stop_max_attempt_number=7, wait_fixed=500)
-def parseSort(name, session):
+async def parseSort(name, session):
     print('Parsing '+ name)
 
-    req = requests.get(name).text.split('\n')
+    loop = asyncio.get_event_loop()
+    future = loop.run_in_executor(None, requests.get, name)
+    futureResult = await future
+    req = futureResult.text.split('\n')
 
     # Sift through the sort js file to get the urls of the charts
     regex = r'/\d.*js'
     for line in req:
         if re.search(regex, line) is not None:
             parse = re.findall(regex, line)[0]
-            parseChart('http://sdvx.in'+parse, session)
-        else:
-            print(line)
+            await parseChart('http://sdvx.in'+parse, session)
 
 @retry(stop_max_attempt_number=7, wait_fixed=500)
-def parseChart(name, session):
+async def parseChart(name, session):
     print('Parsing ' + name)
 
-    req = requests.get(name).text.split('\n')
+    loop = asyncio.get_event_loop()
+    future = loop.run_in_executor(None, requests.get, name)
+    futureResult = await future
+    req = futureResult.text.split('\n')
 
     # Sift through the chart js file to get information
     nameRegex = r'(\d+)\s+(.+)' # Group 1 is sdvx.in's id for the song; Group 2 is the song name
@@ -139,8 +144,12 @@ def parseChart(name, session):
 
             # Only toss to google if it contains jp
             if re.search(jpRegex, name) is not None:
-                nameTrans = Translator().translate(name, src='ja', dest='en').text
-                romPronunciation = Translator().translate(name, dest='ja').pronunciation
+                futureNT = loop.run_in_executor(None, lambda: Translator().translate(name, src='ja', dest='en'))
+                futureP = loop.run_in_executor(None, lambda: Translator().translate(name, dest='ja'))
+                futureNTResult = await futureNT
+                futurePResult = await futureP
+                nameTrans = futureNTResult.text
+                romPronunciation = futurePResult.pronunciation
             # If received jp from google, save as rom - decoded without pronunciation guides
             if romPronunciation is not None:
                 rom = unidecode(romPronunciation)
@@ -151,14 +160,14 @@ def parseChart(name, session):
 
     romNS = rom.replace(' ', '')
 
-    addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session)
+    await addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session)
 
-def addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session):
+async def addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session):
     #print('Adding ' + name +' '+ rom +' '+ linkN +' '+ linkA +' '+ linkE +' '+ linkM)
     session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif))
 
 # Used for updates until a proper update function is created
-def recreateDB():
+async def recreateDB():
     # Create a backup
     session = sessionMaker()
     now = datetime.now()
@@ -167,12 +176,14 @@ def recreateDB():
         os.rename('sdvxCharts.db', oldName)
     try:
         base.metadata.create_all(engine)
-        init(session)
+        await init(session)
         session.commit()
         return True
     except Exception as e:
         print(e)
         session.rollback()
+        session.close()
+        os.remove('sdvxCharts.db')
         os.rename(oldName, 'sdvxCharts.db')
         return False
     finally:
@@ -182,11 +193,15 @@ def recreateDB():
 songList, songResultList = [], []
 resultValue = 0.1
 
-def query(search):
+async def query(search):
     jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B'  # https://gist.github.com/ryanmcgrath/982242
     session = sessionMaker()
     global songList
     global songResultList
+
+    # Clear out on new query request
+    del songList[:]
+    del songResultList[:]
 
     for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
                                                                                    Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif):

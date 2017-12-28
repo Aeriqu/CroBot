@@ -4,35 +4,47 @@ import sdvxCharts
 
 import re
 import time
+import asyncio
+
 from collections import defaultdict
 
 # Timeout setup
 INTERVAL = 5
 # format: name, time able to talk
 timeoutDict = defaultdict(float)
+# To keep track of db updates
+sdvxDBUpdate = False
 
 # Messages
 async def on_message(message, client):
     global timeoutList
+    global sdvxDBUpdate
+
+    # timeout check
+    now = time.time()
+    # remove all users who have completed timeout
+    for user, timeAvailable in list(timeoutDict.items()):
+        if timeAvailable <= now:
+            del timeoutDict[user]
+    # if user still exists, their timeout hasn't finished
+    if message.author.id in timeoutDict:
+        return
+    # add user to list and start query
+    timeoutDict[message.author.id] = now + INTERVAL
+
     # sdvx.in functionality
     if message.content.startswith('!sdvxin'):
-        # timeout check
-        now = time.time()
-        # remove all users who have completed timeout
-        for user, timeAvailable in list(timeoutDict.items()):
-            if timeAvailable <= now:
-                del timeoutDict[user]
-        # if user still exists, their timeout hasn't finished
-        if message.author.id in timeoutDict:
+
+        # Check to see if database is currently updating
+        if sdvxDBUpdate:
+            await client.send_message(message.channel, 'Database is currently updating. Please wait.\nPlease refer to bot playing status to see when this is done.')
             return
-        # add user to list and start query
-        timeoutDict[message.author.id] = now + INTERVAL
 
         # voltex query
         name = re.search(r'(!sdvxin\s)(.*)', message.content).group(2)
         songList = []
         try:
-            songList = sdvxCharts.query(name)
+            songList = await sdvxCharts.query(name)
         except Exception as e:
             print('sdvx error: '+name+' '+e)
 
@@ -59,4 +71,49 @@ async def on_message(message, client):
         elif len(songList) is 0:
             await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
         else:
-            await client.send_message(message.channel, 'Multiple songs found with that request. I\'ll add this later')
+            msg = ''
+            for song in songList:
+                msg += song.name + '\n'
+            msg += 'Multiple songs found. Please enter the exact title from the above.'
+            await client.send_message(message.channel, msg)
+
+    # Command to update sdvx.in database
+    elif message.content.startswith('!sdvxupdate'):
+
+        # update function to reduce clutter
+        async def updateDB(msg):
+            global sdvxDBUpdate
+
+            sdvxDBUpdate = True
+            await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
+
+            await sdvxCharts.recreateDB()
+
+            sdvxDBUpdate = False
+            await client.edit_message(msg, new_content='Database updated.')
+            await client.change_presence(game=None)
+
+        # Check to see if database is already being updated
+        if sdvxDBUpdate:
+            await client.send_message(message.channel, 'Database is already updating.')
+            return
+
+        # If not bot owner, aka me
+        if message.author.id != str(81415254252191744):
+            msg = await client.send_message(message.channel, 'sdvx.in database update was requested.\nPlease react 👍 to vote for an update.\nDatabase will update if 5 votes are received in the next minute.')
+            await client.add_reaction(msg, '👍')
+            await asyncio.sleep(2)
+
+            cached_msg = discord.utils.get(client.messages, id=msg.id)
+            for react in cached_msg.reactions:
+                if react.emoji == '👍':
+                    if react.count >= 6:
+                        await client.edit_message(msg, new_content='Enough votes were received.\nNow updating database. Please refer to the bot\'s game status for status.')
+                        await updateDB(msg)
+
+                    else:
+                        await client.edit_message(msg, new_content='Not enough votes were received. Database will not be updated. Only '+str(react.count-1)+' votes were received.')
+        # If bot owner, aka me
+        else:
+            msg = await client.send_message(message.channel, 'Updating SDVX DB...')
+            await updateDB(msg)

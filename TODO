@@ -1,9 +1,9 @@
 TODO:
 	General:
-		* Modularize database searches
-		* Minimum fuzzy ratio to get rid of irrelevant searches
+		* Music streaming
 
 	SDVX:
-		* Command based database update
 		* Add chart images to embed
+		* Update database versus recreating it every time
 		* Search by artist/effector
+		* Minimum fuzzy ratio to get rid of irrelevant searches
