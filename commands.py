@@ -37,7 +37,8 @@ async def on_message(message, client):
 
         # Check to see if database is currently updating
         if sdvxDBUpdate:
-            await client.send_message(message.channel, 'Database is currently updating. Please wait.\nPlease refer to bot playing status to see when this is done.')
+            await client.send_message(message.channel, 'Database is currently updating. Please wait.\n'
+                                                       'Please refer to bot playing status to see when this is done.')
             return
 
         # voltex query
@@ -71,11 +72,15 @@ async def on_message(message, client):
         elif len(songList) is 0:
             await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
         else:
+            # Set up embed
+            em = discord.Embed(title='Multiple songs found.', color=0x946b9c)
+
             msg = ''
             for song in songList:
                 msg += song.name + '\n'
-            msg += 'Multiple songs found. Please enter the exact title from the above.'
-            await client.send_message(message.channel, msg)
+
+            em.add_field(name='Please enter the exact title from the list below.', value=msg)
+            await client.send_message(message.channel, embed=em)
 
     # Command to update sdvx.in database
     elif message.content.startswith('!sdvxupdate'):
@@ -100,19 +105,23 @@ async def on_message(message, client):
 
         # If not bot owner, aka me
         if message.author.id != str(81415254252191744):
-            msg = await client.send_message(message.channel, 'sdvx.in database update was requested.\nPlease react 👍 to vote for an update.\nDatabase will update if 5 votes are received in the next minute.')
+            msg = await client.send_message(message.channel, 'sdvx.in database update was requested.\n'
+                                                             'Please react 👍 to vote for an update.\n'
+                                                             'Database will update if 5 votes are received in the next minute.')
             await client.add_reaction(msg, '👍')
-            await asyncio.sleep(2)
+            await asyncio.sleep(60)
 
             cached_msg = discord.utils.get(client.messages, id=msg.id)
             for react in cached_msg.reactions:
                 if react.emoji == '👍':
                     if react.count >= 6:
-                        await client.edit_message(msg, new_content='Enough votes were received.\nNow updating database. Please refer to the bot\'s game status for status.')
+                        await client.edit_message(msg, new_content='Enough votes were received.\n'
+                                                                   'Now updating database. Please refer to the bot\'s game status for status.')
                         await updateDB(msg)
 
                     else:
-                        await client.edit_message(msg, new_content='Not enough votes were received. Database will not be updated. Only '+str(react.count-1)+' votes were received.')
+                        await client.edit_message(msg, new_content='Not enough votes were received. Database will not be updated. \n'
+                                                                   'Only '+str(react.count-1)+' votes were received. 5 were required.')
         # If bot owner, aka me
         else:
             msg = await client.send_message(message.channel, 'Updating SDVX DB...')
