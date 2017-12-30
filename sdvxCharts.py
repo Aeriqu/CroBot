@@ -263,6 +263,13 @@ async def query(search):
         # Search through the translated list
         querySearcher(search, 3)
 
+        # There were some issues where fuzzy 100 was hit amongst multiple titles, even with exact names.
+        # Sadly, Erin couldn't help us.
+        # In case the full title was actually given:
+        for song in songResultList:
+            if song.name == search:
+                songResultList = [song]
+
     session.close()
 
     return songResultList
