@@ -52,6 +52,7 @@ async def on_message(message, client):
         if len(songList) == 1:
             # Set up embed
             em = discord.Embed(title=songList[0].name, color=0x946b9c)
+            em.set_thumbnail(url=songList[0].jacket)
             if songList[0].maxDif is not 0:
                 val = '[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+') - '
 
@@ -92,11 +93,14 @@ async def on_message(message, client):
             sdvxDBUpdate = True
             await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
 
-            await sdvxCharts.recreateDB()
+            status = await sdvxCharts.updateDB()
 
             sdvxDBUpdate = False
-            await client.edit_message(msg, new_content='Database updated.')
             await client.change_presence(game=None)
+            if status:
+                await client.edit_message(msg, new_content='Database updated.')
+            else:
+                await client.edit_message(msg, new_content='Database update failed.')
 
         # Check to see if database is already being updated
         if sdvxDBUpdate:
@@ -126,3 +130,17 @@ async def on_message(message, client):
         else:
             msg = await client.send_message(message.channel, 'Updating SDVX DB...')
             await updateDB(msg)
+
+    # Command to update sdvx.in database structure
+    elif message.content.startswith('!sdvxstructureupdate'):
+        if message.author.id == str(81415254252191744):
+            sdvxDBUpdate = True
+            await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
+            msg = await client.send_message(message.channel, 'Updating SDVX DB Structure...')
+            status = await sdvxCharts.recreateDB()
+            sdvxDBUpdate = False
+            await client.change_presence(game=None)
+            if status:
+                await client.edit_message(msg, new_content='Database structure updated.')
+            else:
+                await client.edit_message(msg, new_content='Database structure update failed.')

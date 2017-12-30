@@ -3,7 +3,5 @@ TODO:
 		* Music streaming
 
 	SDVX:
-		* Add chart images to embed
-		* Update database versus recreating it every time
-		* Search by artist/effector
+		* Add artist and yt links to embed
 		* Minimum fuzzy ratio to get rid of irrelevant searches

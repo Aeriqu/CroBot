@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Song class for query
 class Song():
-    def __init__(self, n, nr, nrns, nt, ln, la, le, lm, md):
+    def __init__(self, n, nr, nrns, nt, ln, la, le, lm, md, jk):
         self.name = n
         self.nameRomanized = nr
         self.nameRomNoSpace = nrns
@@ -33,8 +33,10 @@ class Song():
             self.linkMax = lm
             self.maxDif = md
 
+        self.jacket = jk
+
     def all(self):
-        return self.name+' '+self.nameRomanized+' '+self.nameRomNoSpace+' '+self.nameTranslated+' '+self.linkNov+' '+self.linkAdv+' '+self.linkExh+' '+self.linkMax
+        return self.name+' '+self.nameRomanized+' '+self.nameRomNoSpace+' '+self.nameTranslated+' '+self.linkNov+' '+self.linkAdv+' '+self.linkExh+' '+self.linkMax+' '+self.jacket
 
 # Database setup
 
@@ -54,52 +56,70 @@ class Chart(base):
     linkMax = Column(String)
     maxDif = Column(Integer)
 
+    jacket = Column(String)
+
     def __repr__(self):
-        return "<Chart(name: '%s', romanized: '%s', nov: '%s', adv: '%s', exh: '%s', inf: '%s')>" % (
-            self.name, self.nameRomanized, self.linkNov, self.linkAdv, self.linkExh, self.linkMax)
+        return "<Chart(name: '%s', romanized: '%s', nov: '%s', adv: '%s', exh: '%s', inf: '%s', jacket: '%s')>" % (
+            self.name, self.nameRomanized, self.linkNov, self.linkAdv, self.linkExh, self.linkMax, self.jacket)
 
 engine = create_engine('sqlite:///sdvxCharts.db')
 sessionMaker = sessionmaker(bind=engine)
 
-# Initial DB set up
-@retry(stop_max_attempt_number=7, wait_fixed=500)
-async def init(session):
+# Initial DB set up; type 0 is rebuild ; type 1 is update
+@retry(stop_max_attempt_number=7, wait_fixed=2500)
+async def init(session, type):
     print('Starting database entry')
 
     sortList = ['http://sdvx.in/sort/sort_a.js', 'http://sdvx.in/sort/sort_k.js', 'http://sdvx.in/sort/sort_s.js',
                 'http://sdvx.in/sort/sort_t.js', 'http://sdvx.in/sort/sort_n.js', 'http://sdvx.in/sort/sort_h.js',
                 'http://sdvx.in/sort/sort_m.js', 'http://sdvx.in/sort/sort_y.js', 'http://sdvx.in/sort/sort_r.js', 'http://sdvx.in/sort/sort_w.js']
+    # name list for update
+    list = []
+    if type == 1:
+        # If only one query field, it will be formatted as ('songname',)
+        for id, name in session.query(Chart.id, Chart.name):
+            list.append(name)
 
     for item in sortList:
-        await parseSort(item, session)
+        await parseSort(item, session, type, list)
 
-@retry(stop_max_attempt_number=7, wait_fixed=500)
-async def parseSort(name, session):
-    print('Parsing '+ name)
+@retry(stop_max_attempt_number=7, wait_fixed=2500)
+async def parseSort(url, session, type, list):
+    print('Parsing '+ url)
 
     loop = asyncio.get_event_loop()
-    future = loop.run_in_executor(None, requests.get, name)
+    future = loop.run_in_executor(None, requests.get, url)
     futureResult = await future
     req = futureResult.text.split('\n')
+    regex = r'(/\d.*js).*//(.*$)'
 
-    # Sift through the sort js file to get the urls of the charts
-    regex = r'/\d.*js'
-    for line in req:
-        if re.search(regex, line) is not None:
-            parse = re.findall(regex, line)[0]
-            await parseChart('http://sdvx.in'+parse, session)
+    if type == 0:
+        # Sift through the sort js file to get the urls of the charts
+        for line in req:
+            if re.search(regex, line) is not None:
+                parse = re.search(regex, line).group(1)
+                title = re.search(regex, line).group(2)  # Title detection is done here instead of at parseChart because
+                                                         #   sometimes the chart title contains html when parsed at parseChart
+                await parseChart('http://sdvx.in' + parse, title, session)
 
-@retry(stop_max_attempt_number=7, wait_fixed=500)
-async def parseChart(name, session):
-    print('Parsing ' + name)
+    else:
+        for line in req:
+            if re.search(regex, line) is not None and html.unescape(re.search(regex, line).group(2)) not in list:
+                parse = re.search(regex, line).group(1)
+                title = re.search(regex, line).group(2)  # Title detection is done here instead of at parseChart because
+                                                         #   sometimes the chart title contains html when parsed at parseChart
+                await parseChart('http://sdvx.in' + parse, title, session)
+
+@retry(stop_max_attempt_number=7, wait_fixed=2500)
+async def parseChart(url, title, session):
+    print('Parsing ' + url)
 
     loop = asyncio.get_event_loop()
-    future = loop.run_in_executor(None, requests.get, name)
+    future = loop.run_in_executor(None, requests.get, url)
     futureResult = await future
     req = futureResult.text.split('\n')
 
     # Sift through the chart js file to get information
-    nameRegex = r'(\d+)\s+(.+)' # Group 1 is sdvx.in's id for the song; Group 2 is the song name
     sortRegex = r'SORT\d*' # Used to filter out the sort line
     difRegex = r'LV\d+[NAEIGHM]'
     novRegex = r'LV\d+N'
@@ -107,10 +127,31 @@ async def parseChart(name, session):
     exhRegex = r'LV\d+E'
     maxRegex = r'LV\d+[IGHM]'
     linkRegex = r'/\d.*htm'
+    jacketRegex = r'(/\d+/jacket/\d+[em]....)'
     jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B' # https://gist.github.com/sym3tri/980083
-    name, nameTrans, rom, romPronunciation, linkN, linkA, linkE, linkM = (None,)*8
+    nameTrans, rom, romPronunciation, linkN, linkA, linkE, linkM, jacket = (None,)*8
     mDif = 0
-    for i, line in enumerate(req):
+
+    # set name values
+    title = html.unescape(title)
+    # Only toss to google if it contains jp
+    if re.search(jpRegex, title) is not None:
+        futureNT = loop.run_in_executor(None, lambda: Translator().translate(title, src='ja', dest='en'))
+        futureP = loop.run_in_executor(None, lambda: Translator().translate(title, dest='ja'))
+        futureNTResult = await futureNT
+        futurePResult = await futureP
+        nameTrans = futureNTResult.text
+        romPronunciation = futurePResult.pronunciation
+    # If received jp from google, save as rom - decoded without pronunciation guides
+    if romPronunciation is not None:
+        rom = unidecode(romPronunciation)
+    # If nothing received from google, assume no jp and save title as rom
+    else:
+        nameTrans = title
+        rom = title
+
+    # Set difficulties
+    for line in req:
         # If the line contains a difficulty link
         if re.search(difRegex, line) is not None and re.search(sortRegex, line) is None:
             # If line has nov difficulty
@@ -135,36 +176,21 @@ async def parseChart(name, session):
                 elif 'M' in line:
                     mDif = 4
 
-        # If first line
-        elif i == 0:
-            # Get name of the song
-            name = html.unescape(re.search(nameRegex, line).group(2))
-
-            # Get romanized jp title
-
-            # Only toss to google if it contains jp
-            if re.search(jpRegex, name) is not None:
-                futureNT = loop.run_in_executor(None, lambda: Translator().translate(name, src='ja', dest='en'))
-                futureP = loop.run_in_executor(None, lambda: Translator().translate(name, dest='ja'))
-                futureNTResult = await futureNT
-                futurePResult = await futureP
-                nameTrans = futureNTResult.text
-                romPronunciation = futurePResult.pronunciation
-            # If received jp from google, save as rom - decoded without pronunciation guides
-            if romPronunciation is not None:
-                rom = unidecode(romPronunciation)
-            # If nothing received from google, assume no jp and save title as rom
-            else:
-                nameTrans = name
-                rom = name
-
     romNS = rom.replace(' ', '')
 
-    await addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session)
+    # Gets jacket art
+    future2 = loop.run_in_executor(None, requests.get, url.replace('sort', 'data'))
+    futureResult2 = await future2
+    req2 = futureResult2.text.split('\n')
+    for line in req2:
+        if re.search(jacketRegex, line) is not None:
+            jacket = 'http://sdvx.in'+re.search(jacketRegex, line).group(1)
 
-async def addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, session):
+    await addToDB(title, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, jacket, session)
+
+async def addToDB(name, nameTrans, rom, romNS, linkN, linkA, linkE, linkM, mDif, jacket, session):
     #print('Adding ' + name +' '+ rom +' '+ linkN +' '+ linkA +' '+ linkE +' '+ linkM)
-    session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif))
+    session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif, jacket=jacket))
 
 # Used for updates until a proper update function is created
 async def recreateDB():
@@ -176,7 +202,7 @@ async def recreateDB():
         os.rename('sdvxCharts.db', oldName)
     try:
         base.metadata.create_all(engine)
-        await init(session)
+        await init(session, 0)
         session.commit()
         return True
     except Exception as e:
@@ -188,6 +214,22 @@ async def recreateDB():
         return False
     finally:
         session.close()
+
+async def updateDB():
+    session = sessionMaker()
+    try:
+        base.metadata.create_all(engine)
+        await init(session, 1)
+        session.commit()
+        return True
+    except Exception as e:
+        print(e)
+        session.rollback()
+        session.close()
+        return False
+    finally:
+        session.close()
+
 
 # I had issues passing these values directly to query search, so I'm using global
 songList, songResultList = [], []
@@ -205,9 +247,9 @@ async def query(search):
     del songResultList[:]
     resultValue = 0
 
-    for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
-                                                                                   Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif):
-        songList.append(Song(name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif))
+    for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif, jk in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
+                                                                                   Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif, Chart.jacket):
+        songList.append(Song(name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif, jk))
 
     # If text contains japanese, it is most likely the title / partial official title
     if re.search(jpRegex, search) is not None:
