@@ -41,47 +41,56 @@ async def on_message(message, client):
                                                        'Please refer to bot playing status to see when this is done.')
             return
 
-        # voltex query
-        name = re.search(r'(!sdvxin\s)(.*)', message.content).group(2)
-        songList = []
-        try:
-            songList = await sdvxCharts.query(name)
-        except Exception as e:
-            print('sdvx error: '+name+' '+e)
+        async def sendMessage(songList):
+            if len(songList) == 1:
+                # Set up embed
+                em = discord.Embed(title=songList[0].name, color=0x946b9c)
+                em.set_thumbnail(url=songList[0].jacket)
+                if songList[0].maxDif is not 0:
+                    val = '[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+') - '
 
-        if len(songList) == 1:
-            # Set up embed
-            em = discord.Embed(title=songList[0].name, color=0x946b9c)
-            em.set_thumbnail(url=songList[0].jacket)
-            if songList[0].maxDif is not 0:
-                val = '[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+') - '
+                    if songList[0].maxDif is 1:
+                        val += '[INFINITE]('+str(songList[0].linkMax)+')'
+                    elif songList[0].maxDif is 2:
+                        val += '[GRAVITY](' + str(songList[0].linkMax) + ')'
+                    elif songList[0].maxDif is 3:
+                        val += '[HEAVENLY](' + str(songList[0].linkMax) + ')'
+                    elif songList[0].maxDif is 4:
+                        val += '[MAXIMUM](' + str(songList[0].linkMax) + ')'
 
-                if songList[0].maxDif is 1:
-                    val += '[INFINITE]('+str(songList[0].linkMax)+')'
-                elif songList[0].maxDif is 2:
-                    val += '[GRAVITY](' + str(songList[0].linkMax) + ')'
-                elif songList[0].maxDif is 3:
-                    val += '[HEAVENLY](' + str(songList[0].linkMax) + ')'
-                elif songList[0].maxDif is 4:
-                    val += '[MAXIMUM](' + str(songList[0].linkMax) + ')'
+                    em.add_field(name='-', value=val)
+                else:
+                    em.add_field(name='-', value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
 
-                em.add_field(name='-', value=val)
+                await client.send_message(message.channel, embed=em)
+            elif len(songList) is 0:
+                await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
             else:
-                em.add_field(name='-', value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
+                # Set up embed
+                em = discord.Embed(title='Multiple songs found.', color=0x946b9c)
 
-            await client.send_message(message.channel, embed=em)
-        elif len(songList) is 0:
-            await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
+                msg = ''
+                for song in songList:
+                    msg += song.name + '\n'
+
+                em.add_field(name='Please enter the exact title from the list below.', value=msg)
+                await client.send_message(message.channel, embed=em)
+
+        if message.content == '!sdvxin random':
+            await sendMessage(await sdvxCharts.randomSong())
+
         else:
-            # Set up embed
-            em = discord.Embed(title='Multiple songs found.', color=0x946b9c)
+            # voltex query
+            name = re.search(r'(!sdvxin\s)(.*)', message.content).group(2)
+            songList = []
+            try:
+                songList = await sdvxCharts.query(name)
+            except Exception as e:
+                print('sdvx error: '+name+' '+e)
 
-            msg = ''
-            for song in songList:
-                msg += song.name + '\n'
+            await sendMessage(songList)
 
-            em.add_field(name='Please enter the exact title from the list below.', value=msg)
-            await client.send_message(message.channel, embed=em)
+
 
     # Command to update sdvx.in database
     elif message.content.startswith('!sdvxupdate'):

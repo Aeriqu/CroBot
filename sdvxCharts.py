@@ -1,5 +1,6 @@
 import os
 import re
+import random
 import requests
 from retrying import retry
 from datetime import datetime
@@ -257,9 +258,10 @@ async def query(search):
     del songResultList[:]
     resultValue = 0
 
-    for name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif, jk in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
-                                                                                   Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif, Chart.jacket):
-        songList.append(Song(name, rom, romNS, trans, linkN, linkA, linkE, linkM, mDif, jk))
+    for name, rom, romNS, trans, comm, linkN, linkA, linkE, linkM, mDif, jk in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
+                                                                                             Chart.nameComment, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                                                                                             Chart.maxDif, Chart.jacket):
+        songList.append(Song(name, rom, romNS, trans, comm, linkN, linkA, linkE, linkM, mDif, jk))
 
     # If text contains japanese, it is most likely the title / partial official title
     if re.search(jpRegex, search) is not None:
@@ -299,3 +301,13 @@ def querySearcher(search, type):
             songResultList = [song]
         elif fuzzValue == resultValue and song not in songResultList:
             songResultList.append(song)
+
+async def randomSong():
+    session = sessionMaker()
+    songList = []
+    for name, rom, romNS, trans, comm, linkN, linkA, linkE, linkM, mDif, jk in session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
+                                                                                             Chart.nameComment, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                                                                                             Chart.maxDif, Chart.jacket):
+        songList.append(Song(name, rom, romNS, trans, comm, linkN, linkA, linkE, linkM, mDif, jk))
+
+    return [random.choice(songList)]
