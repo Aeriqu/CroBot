@@ -15,6 +15,13 @@ timeoutDict = defaultdict(float)
 # To keep track of db updates
 sdvxDBUpdate = False
 
+# Embed colors
+#   # General: 0x946b9c
+#   # Good: 0x2ecc71
+#   # In Progress: 0xe67e22
+#   # Warning: 0xf1c40f
+#   # Bad: 0xe74c3c
+
 # Messages
 async def on_message(message, client):
     global timeoutList
@@ -37,8 +44,10 @@ async def on_message(message, client):
 
         # Check to see if database is currently updating
         if sdvxDBUpdate:
-            await client.send_message(message.channel, 'Database is currently updating. Please wait.\n'
+            em = discord.Embed(title='Database updating', color=0xf1c40f)
+            em.add_field(name='-', inline=False, value='Database is currently updating. Please wait.\n'
                                                        'Please refer to bot playing status to see when this is done.')
+            await client.send_message(message.channel, embed=em)
             return
 
         async def sendMessage(songList):
@@ -58,7 +67,7 @@ async def on_message(message, client):
                     elif songList[0].maxDif is 4:
                         val += '[MAXIMUM](' + str(songList[0].linkMax) + ')'
 
-                    em.add_field(name=songList[0].artist, value=val)
+                    em.add_field(name=songList[0].artist, inline=False, value=val)
                 else:
                     em.add_field(name=songList[0].artist, inline=False, value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
 
@@ -88,12 +97,16 @@ async def on_message(message, client):
                 # Send Embed
                 await client.send_message(message.channel, embed=em)
             elif len(songList) == 0:
-                await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
+                em = discord.Embed(title='Search Error', color=0x946b9c)
+                em.add_field(name='-', inline=False, value='No Song Found / Error With Query or Database')
+                await client.send_message(message.channel, embed=em)
             elif len(songList) > 10:
-                await client.send_message(message.channel, 'Too many songs found. Please refine your search.')
+                em = discord.Embed(title='Search Error', color=0xe67e22)
+                em.add_field(name='-', inline=False, value='Too many songs found. Please refine your search.')
+                await client.send_message(message.channel, embed=em)
             else:
                 # Set up embed
-                em = discord.Embed(title='Multiple songs found.', color=0x946b9c)
+                em = discord.Embed(title='Multiple songs found.', color=0xe67e22)
 
                 msg = ''
                 for song in songList:
@@ -104,6 +117,90 @@ async def on_message(message, client):
 
         if message.content == '!sdvxin random':
             await sendMessage(await sdvxCharts.randomSong())
+
+        # update command
+        elif message.content.startswith('!sdvxin update'):
+            # update function to reduce clutter
+            async def updateDB(msg):
+                global sdvxDBUpdate
+
+                sdvxDBUpdate = True
+                await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
+
+                status = await sdvxCharts.updateDB()
+
+                sdvxDBUpdate = False
+                await client.change_presence(game=None)
+                if status:
+                    em = discord.Embed(title='Success', color=0x2ecc71)
+                    em.add_field(name='-', inline=False, value='Database updated.')
+                    await client.edit_message(msg, embed=em)
+                else:
+                    em = discord.Embed(title='Failure', color=0xe74c3c)
+                    em.add_field(name='-', inline=False, value='Database update failed.')
+                    await client.edit_message(msg, embed=em)
+
+            # Check for update override ; Only I can do this
+            if message.content == '!sdvxin update override' and message.author.id == str(81415254252191744):
+                em = discord.Embed(title='Updating', color=0x946b9c)
+                em.add_field(name='-', inline=False, value='Updating SDVX DB...')
+                msg = await client.send_message(message.channel, embed=em)
+                await updateDB(msg)
+                return
+
+            # Check to see if database is already being updated
+            if sdvxDBUpdate:
+                em = discord.Embed(title='Database updating', color=0xf1c40f)
+                em.add_field(name='-', inline=False, value='Database is already updating.')
+                await client.send_message(message.channel, embed=em)
+                return
+
+            # General update run
+            em = discord.Embed(title='Database update vote', color=0xf1c40f)
+            em.add_field(name='-', inline=False, value='sdvx.in database update was requested.\n'
+                                                       'Please react 👍 to vote for an update.\n'
+                                                       'Database will update if 5 votes are received in the next minute.')
+            msg = await client.send_message(message.channel, embed=em)
+            await client.add_reaction(msg, '👍')
+            await asyncio.sleep(60)
+
+            cached_msg = discord.utils.get(client.messages, id=msg.id)
+            for react in cached_msg.reactions:
+                if react.emoji == '👍':
+                    if react.count >= 6:
+                        em = discord.Embed(title='Database update started', color=0xe67e22)
+                        em.add_field(name='-', inline=False, value='Enough votes were received.\n'
+                                                                   'Now updating database. Please refer to the bot\'s game status for status.')
+                        await client.edit_message(msg, embed=em)
+                        await updateDB(msg)
+
+                    else:
+                        em = discord.Embed(title='Database update vote failed', color=0xe74c3c)
+                        em.add_field(name='-', inline=False,
+                                     value='Not enough votes were received. Database will not be updated. \n'
+                                           'Only ' + str(
+                                         react.count - 1) + ' votes were received. 5 were required.')
+                        await client.edit_message(msg, embed=em)
+
+        # Command to update sdvx.in database structure
+        elif message.content == '!sdvxin structureupdate':
+            if message.author.id == str(81415254252191744):
+                sdvxDBUpdate = True
+                await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
+                em = discord.Embed(title='Updating', color=0x946b9c)
+                em.add_field(name='-', inline=False, value='Updating SDVX DB Structure...')
+                msg = await client.send_message(message.channel, embed=em)
+                status = await sdvxCharts.recreateDB()
+                sdvxDBUpdate = False
+                await client.change_presence(game=None)
+                if status:
+                    em = discord.Embed(title='Success', color=0x2ecc71)
+                    em.add_field(name='-', inline=False, value='Database structure updated.')
+                    await client.edit_message(msg, embed=em)
+                else:
+                    em = discord.Embed(title='Failure', color=0xe74c3c)
+                    em.add_field(name='-', inline=False, value='Database structure failed.')
+                    await client.edit_message(msg, embed=em)
 
         else:
             # voltex query
@@ -116,76 +213,12 @@ async def on_message(message, client):
 
             await sendMessage(songList)
 
-
-
-    # Command to update sdvx.in database
-    elif message.content.startswith('!sdvxupdate'):
-
-        # update function to reduce clutter
-        async def updateDB(msg):
-            global sdvxDBUpdate
-
-            sdvxDBUpdate = True
-            await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
-
-            status = await sdvxCharts.updateDB()
-
-            sdvxDBUpdate = False
-            await client.change_presence(game=None)
-            if status:
-                await client.edit_message(msg, new_content='Database updated.')
-            else:
-                await client.edit_message(msg, new_content='Database update failed.')
-
-        # Check to see if database is already being updated
-        if sdvxDBUpdate:
-            await client.send_message(message.channel, 'Database is already updating.')
-            return
-
-        # If not bot owner, aka me
-        if message.author.id != str(81415254252191744):
-            msg = await client.send_message(message.channel, 'sdvx.in database update was requested.\n'
-                                                             'Please react 👍 to vote for an update.\n'
-                                                             'Database will update if 5 votes are received in the next minute.')
-            await client.add_reaction(msg, '👍')
-            await asyncio.sleep(60)
-
-            cached_msg = discord.utils.get(client.messages, id=msg.id)
-            for react in cached_msg.reactions:
-                if react.emoji == '👍':
-                    if react.count >= 6:
-                        await client.edit_message(msg, new_content='Enough votes were received.\n'
-                                                                   'Now updating database. Please refer to the bot\'s game status for status.')
-                        await updateDB(msg)
-
-                    else:
-                        await client.edit_message(msg, new_content='Not enough votes were received. Database will not be updated. \n'
-                                                                   'Only '+str(react.count-1)+' votes were received. 5 were required.')
-        # If bot owner, aka me
-        else:
-            msg = await client.send_message(message.channel, 'Updating SDVX DB...')
-            await updateDB(msg)
-
-    # Command to update sdvx.in database structure
-    elif message.content.startswith('!sdvxstructureupdate'):
-        if message.author.id == str(81415254252191744):
-            sdvxDBUpdate = True
-            await client.change_presence(game=discord.Game(name='Updating SDVX DB'))
-            msg = await client.send_message(message.channel, 'Updating SDVX DB Structure...')
-            status = await sdvxCharts.recreateDB()
-            sdvxDBUpdate = False
-            await client.change_presence(game=None)
-            if status:
-                await client.edit_message(msg, new_content='Database structure updated.')
-            else:
-                await client.edit_message(msg, new_content='Database structure update failed.')
-
     # For bot specific commands
     elif message.content.startswith('!cro'):
         if message.content == '!cro help':
             em = discord.Embed(title='Commands', color=0x946b9c)
             em.add_field(name='-', value='!sdvxin [title] - Searches for title in the cached sdvx.in database\n'
                                          '!sdvxin random - Returns a random song from the sdvx.in database\n'
-                                         '!sdvxupdate - Updates the sdvx.in database\n'
+                                         '!sdvxin update - Updates the sdvx.in database\n'
                                          '!cro help - Returns this message')
             await client.send_message(message.channel, embed=em)

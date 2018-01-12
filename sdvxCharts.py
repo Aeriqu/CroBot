@@ -114,27 +114,30 @@ async def init(session, type):
 @retry(stop_max_attempt_number=7, wait_fixed=2500)
 async def parseSort(url, session, type, nameList):
     print('Parsing '+ url)
+    try:
+        loop = asyncio.get_event_loop()
+        future = loop.run_in_executor(None, requests.get, url)
+        futureResult = await future
+        req = futureResult.text.split('\n')
+        regex = r'(/\d.*js)'
 
-    loop = asyncio.get_event_loop()
-    future = loop.run_in_executor(None, requests.get, url)
-    futureResult = await future
-    req = futureResult.text.split('\n')
-    regex = r'(/\d.*js)'
+        if type == 0:
+            # Sift through the sort js file to get the urls of the charts
+            for line in req:
+                if re.search(regex, line) is not None:
+                    parse = re.search(regex, line).group(1)
+                    songID = re.search(r'/(\d+)sort.js', line).group(1)
+                    await parseChart('http://sdvx.in' + parse, session, songID)
 
-    if type == 0:
-        # Sift through the sort js file to get the urls of the charts
-        for line in req:
-            if re.search(regex, line) is not None:
-                parse = re.search(regex, line).group(1)
-                songID = re.search(r'/(\d+)sort.js', line).group(1)
-                await parseChart('http://sdvx.in' + parse, session, songID)
+        else:
+            for line in req:
+                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) not in nameList:
+                    parse = re.search(regex, line).group(1)
+                    songID = re.search(r'/(\d+)sort.js', line).group(1)
+                    await parseChart('http://sdvx.in' + parse, session, songID)
 
-    else:
-        for line in req:
-            if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) not in nameList:
-                parse = re.search(regex, line).group(1)
-                songID = re.search(r'/(\d+)sort.js', line).group(1)
-                await parseChart('http://sdvx.in' + parse, session, songID)
+    except Exception as e:
+        print(str(e) + ': failure on ' + url)
 
 
 @retry(stop_max_attempt_number=7, wait_fixed=500)
@@ -265,7 +268,6 @@ async def recreateDB():
     except Exception as e:
         print(e)
         session.rollback()
-        session.close()
         os.remove('sdvxCharts.db')
         if os.path.isfile(oldName):
             os.rename(oldName, 'sdvxCharts.db')
@@ -283,7 +285,6 @@ async def updateDB():
     except Exception as e:
         print(e)
         session.rollback()
-        session.close()
         return False
     finally:
         session.close()
