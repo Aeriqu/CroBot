@@ -60,7 +60,7 @@ async def on_message(message, client):
 
                     em.add_field(name=songList[0].artist, value=val)
                 else:
-                    em.add_field(name=songList[0].artist, value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
+                    em.add_field(name=songList[0].artist, inline=False, value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
 
                 # Video field
                 if songList[0].videoPlay is not '' or songList[0].videoNFX is not '' or songList[0].videoOG is not '':
@@ -183,7 +183,7 @@ async def on_message(message, client):
     # For bot specific commands
     elif message.content.startswith('!cro'):
         if message.content == '!cro help':
-            em = discord.Embed(title='-', color=0x946b9c)
+            em = discord.Embed(title='Commands', color=0x946b9c)
             em.add_field(name='-', value='!sdvxin [title] - Searches for title in the cached sdvx.in database\n'
                                          '!sdvxin random - Returns a random song from the sdvx.in database\n'
                                          '!sdvxupdate - Updates the sdvx.in database\n'
