@@ -58,13 +58,39 @@ async def on_message(message, client):
                     elif songList[0].maxDif is 4:
                         val += '[MAXIMUM](' + str(songList[0].linkMax) + ')'
 
-                    em.add_field(name='-', value=val)
+                    em.add_field(name=songList[0].artist, value=val)
                 else:
-                    em.add_field(name='-', value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
+                    em.add_field(name=songList[0].artist, value='[NOVICE]('+str(songList[0].linkNov)+') - [ADVANCED]('+str(songList[0].linkAdv)+') - [EXHAUST]('+str(songList[0].linkExh)+')')
 
+                # Video field
+                if songList[0].videoPlay is not '' or songList[0].videoNFX is not '' or songList[0].videoOG is not '':
+                    val = ''
+                    nam = 'Video'
+                    # In game video
+                    if songList[0].videoPlay is not '':
+                        val += '[PLAY]('+songList[0].videoPlay+')'
+                    # Separator pt 1
+                    if songList[0].videoPlay is not '' and songList[0].videoNFX is not '':
+                        val += ' - '
+                        nam = 'Videos'
+                    # NOFX video
+                    if songList[0].videoNFX is not '':
+                        val += '[NO FX]('+songList[0].videoNFX+')'
+                    # Separator pt 2 - I should find a better way to do this
+                    if songList[0].videoNFX is not '' and songList[0].videoOG is not '':
+                        val += ' - '
+                        nam = 'Videos'
+                    # Sometimes has an other
+                    if songList[0].videoOG is not '':
+                        val += '[OTHER](' + songList[0].videoOG + ')'
+                    em.add_field(name=nam, value=val)
+
+                # Send Embed
                 await client.send_message(message.channel, embed=em)
-            elif len(songList) is 0:
+            elif len(songList) == 0:
                 await client.send_message(message.channel, 'No Song Found / Error With Query or Database')
+            elif len(songList) > 10:
+                await client.send_message(message.channel, 'Too many songs found. Please refine your search.')
             else:
                 # Set up embed
                 em = discord.Embed(title='Multiple songs found.', color=0x946b9c)
@@ -153,3 +179,13 @@ async def on_message(message, client):
                 await client.edit_message(msg, new_content='Database structure updated.')
             else:
                 await client.edit_message(msg, new_content='Database structure update failed.')
+
+    # For bot specific commands
+    elif message.content.startswith('!cro'):
+        if message.content == '!cro help':
+            em = discord.Embed(title='-', color=0x946b9c)
+            em.add_field(name='-', value='!sdvxin [title] - Searches for title in the cached sdvx.in database\n'
+                                         '!sdvxin random - Returns a random song from the sdvx.in database\n'
+                                         '!sdvxupdate - Updates the sdvx.in database\n'
+                                         '!cro help - Returns this message')
+            await client.send_message(message.channel, embed=em)

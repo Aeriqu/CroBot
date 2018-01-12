@@ -1,0 +1,6 @@
+discord.py[voice]
+sqlalchemy
+retrying
+googletrans
+fuzzywuzzy[speedup]
+unidecode
