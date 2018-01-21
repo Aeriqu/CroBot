@@ -1,5 +1,6 @@
 TODO:
 	General:
+	    * Transfer sdvx commands out of commands.py and into its own file for readability / future commands
 		* Music streaming
 
 	SDVX:

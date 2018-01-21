@@ -19,7 +19,8 @@ from sqlalchemy.orm import sessionmaker
 
 # Song class for query
 class Song():
-    def __init__(self, n, nr, nrns, nt, art, si, ln, la, le, lm, md, jk, vP, vNFX, vOG):
+    def __init__(self, id, n, nr, nrns, nt, art, si, ln, la, le, lm, md, jk, vP, vNFX, vOG):
+        self.id = id
         self.name = n
         self.nameRomanized = nr
         self.nameRomNoSpace = nrns
@@ -103,13 +104,20 @@ async def init(session, type):
 
     # name list for update
     nameList = []
+    # To check for specific song updates
+    partial = False
     if type == 1:
         # If only one query field, it will be formatted as ('songname',)
         for id, sID in session.query(Chart.id, Chart.songID):
             nameList.append(sID)
 
+    # For specific song update
+    elif int(type) > 1000:
+        nameList = [type]
+        partial = True
+
     for item in sortList:
-        await parseSort(item, session, type, nameList)
+            await parseSort(item, session, 2 if partial else type, nameList)
 
 @retry(stop_max_attempt_number=7, wait_fixed=2500)
 async def parseSort(url, session, type, nameList):
@@ -129,9 +137,16 @@ async def parseSort(url, session, type, nameList):
                     songID = re.search(r'/(\d+)sort.js', line).group(1)
                     await parseChart('http://sdvx.in' + parse, session, songID)
 
-        else:
+        elif type == 1:
             for line in req:
                 if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) not in nameList:
+                    parse = re.search(regex, line).group(1)
+                    songID = re.search(r'/(\d+)sort.js', line).group(1)
+                    await parseChart('http://sdvx.in' + parse, session, songID)
+
+        else:
+            for line in req:
+                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) in nameList:
                     parse = re.search(regex, line).group(1)
                     songID = re.search(r'/(\d+)sort.js', line).group(1)
                     await parseChart('http://sdvx.in' + parse, session, songID)
@@ -248,9 +263,18 @@ async def parseChart(url, session, songID):
         print(str(e)+': failure on '+url)
 
 async def addToDB(name, rom, romNS, nameTrans, art, songID, linkN, linkA, linkE, linkM, mDif, jacket, vP, vNFX, vOG, session):
-    session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, artist=art,
-                      songID=songID, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif,
-                      jacket=jacket, videoPlay=vP, videoNFX=vNFX, videoOG=vOG))
+    # Check if it already exists, if it does update it
+    searchList = await query(songID)
+    if len(searchList) == 1 and searchList[0].songID == songID:
+        data = {'name': name, 'nameRomanized': rom, 'nameRomNoSpace': romNS, 'nameTranslated': nameTrans, 'artist': art,
+                'songID': songID, 'linkNov': linkN, 'linkAdv': linkA, 'linkExh': linkE, 'linkMax': linkM, 'maxDif': mDif,
+                'jacket': jacket, 'videoPlay': vP, 'videoNFX': vNFX, 'videoOG': vOG}
+        session.query(Chart).filter_by(songID=searchList[0].songID).update(data)
+
+    else:
+        session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, artist=art,
+                          songID=songID, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif,
+                          jacket=jacket, videoPlay=vP, videoNFX=vNFX, videoOG=vOG))
 
 # Used for updates until a proper update function is created
 async def recreateDB():
@@ -275,11 +299,18 @@ async def recreateDB():
     finally:
         session.close()
 
-async def updateDB():
+async def updateDB(songID = 1):
     session = sessionMaker()
     try:
         base.metadata.create_all(engine)
-        await init(session, 1)
+        # If URL passed
+        linkRegex = r'sdvx\.in/(\d+)/(\d+)[naeighm]'
+        if re.search(linkRegex, str(songID)) is not None:
+            await parseChart('http://sdvx.in/' + re.search(linkRegex, str(songID)).group(1) + '/js/' + re.search(linkRegex, str(songID)).group(2) + 'sort.js', session, re.search(linkRegex, str(songID)).group(2))
+            session.commit()
+            return True
+
+        await init(session, songID)
         session.commit()
         return True
     except Exception as e:
@@ -295,7 +326,8 @@ songList, songResultList = [], []
 resultValue = 0
 
 async def query(search):
-    jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B'  # https://gist.github.com/ryanmcgrath/982242
+    jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B|\u03A9'  # https://gist.github.com/ryanmcgrath/982242
+    linkRegex = r'sdvx\.in/(\d+)/(\d+)[naeighm]'
     session = sessionMaker()
     global songList
     global songResultList
@@ -306,15 +338,45 @@ async def query(search):
     del songResultList[:]
     resultValue = 0
 
-    for name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
-            session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated, Chart.artist,
-                          Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif,
-                          Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
-        songList.append(Song(name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
+    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
+            session.query(Chart.id, Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
+                          Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                          Chart.maxDif, Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
+        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
+
+    # If search is a song url, skip all of the other searches
+    # Search to see if it exists
+    if re.search(linkRegex, search) is not None:
+        querySearcher(re.search(linkRegex, search).group(2), 4)
+
+        check = False
+        for song in songResultList:
+            if song.songID == re.search(linkRegex, search).group(2):
+                songResultList = [song]
+                check = True
+
+        if check is False:
+            songResultList = []
+
+        session.close()
+        return songResultList
 
     # If text contains japanese, it is most likely the title / partial official title
     if re.search(jpRegex, search) is not None:
         querySearcher(search, 0)
+
+        # May the Magical sky building of emotions haunt us no more
+        # Substrings in the song name shall come forth superior to fuzzy wuzzy
+        tempList = []
+        for song in songResultList:
+            if search in song.name:
+                tempList.append(song)
+
+        songResultList = tempList
+
+    # Search songID for updates
+    elif re.search(r'0\d{4}', search) is not None:
+        querySearcher(search, 4)
 
     else:
         # Search through the romanized list
@@ -341,23 +403,30 @@ def querySearcher(search, type):
     global resultValue
 
     for song in songList:
-        fuzzValue = fuzz.token_set_ratio(song.name if type == 0 else
-                                         song.nameRomanized if type == 1 else
-                                         song.nameRomNoSpace if type == 2 else
-                                         song.nameTranslated, search)
+        songName = (song.name if type == 0 else
+                    song.nameRomanized if type == 1 else
+                    song.nameRomNoSpace if type == 2 else
+                    song.nameTranslated if type == 3 else
+                    song.songID)
+        fuzzValue = fuzz.token_set_ratio(songName, search)
+
         if fuzzValue > resultValue:
             resultValue = fuzzValue
             songResultList = [song]
         elif fuzzValue == resultValue and song not in songResultList:
             songResultList.append(song)
+        # Some cases of difference too big, even though the substring was part of it in jp text
+        # Maybe this will find use in the other searches. If so, I'll allow it, maybe.
+        elif type == 0 and search in songName:
+            songResultList.append(song)
 
 async def randomSong():
     session = sessionMaker()
     songList = []
-    for name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
-            session.query(Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated, Chart.artist,
-                          Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax, Chart.maxDif,
-                          Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
-        songList.append(Song(name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
+    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
+            session.query(Chart.id, Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
+                          Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                          Chart.maxDif, Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
+        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
 
     return [random.choice(songList)]
