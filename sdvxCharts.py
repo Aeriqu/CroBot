@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Song class for query
 class Song():
-    def __init__(self, id, n, nr, nrns, nt, art, si, ln, la, le, lm, md, jk, vP, vNFX, vOG):
+    def __init__(self, id, n, nr, nrns, nt, art, si, ln, la, le, lm, dn, da, de, dm, md, jk, vP, vNFX, vOG):
         self.id = id
         self.name = n
         self.nameRomanized = nr
@@ -33,11 +33,17 @@ class Song():
         self.linkNov = ln
         self.linkAdv = la
         self.linkExh = le
+
+        self.difNov = dn
+        self.difAdv = da
+        self.difExh = de
         if lm is None:
             self.linkMax = ''
+            self.difMax = 0
             self.maxDif = 0
         else:
             self.linkMax = lm
+            self.difMax = dm
             self.maxDif = md
 
         self.jacket = jk
@@ -76,6 +82,10 @@ class Chart(base):
     linkAdv = Column(String)
     linkExh = Column(String)
     linkMax = Column(String)
+    difNov = Column(Integer)
+    difAdv = Column(Integer)
+    difExh = Column(Integer)
+    difMax = Column(Integer)
     maxDif = Column(Integer)
 
     jacket = Column(String)
@@ -174,30 +184,35 @@ async def parseChart(url, session, songID):
         exhRegex = r'LV\d+E'
         maxRegex = r'LV\d+[IGHM]'
         linkRegex = r'/\d.*htm'
+        difficultyRegex = r'(\d+)</div>'
         jacketRegex = r'(/\d+/jacket/\d+[em]....)'
         jpRegex = r'[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B' # https://gist.github.com/sym3tri/980083
         videoRegex = r'SD\d+[FO]'
-        videoPRegex = r'MV\d+[EM]'
+        videoPRegex = r'MV\d+[EIGHM]'
         vNFXRegex = r'SD\d+F'
         vOGRegex = r'SD\d+O'
         vLinkRegex = r'href=(\S+youtube\S+)'
-        name, nameTrans, rom, romPronunciation, art, linkN, linkA, linkE, linkM, jacket, vP, vNFX, vOG = (None,)*13
+        name, nameTrans, rom, romPronunciation, art, linkN, linkA, linkE, linkM, difN, difA, difE, difM, jacket, vP, vNFX, vOG = (None,)*17
         mDif = 0
         for i, line in enumerate(req):
             # If the line contains a difficulty link
             if re.search(difRegex, line) is not None and re.search(sortRegex, line) is None:
                 # If line has nov difficulty
                 if re.search(novRegex, line) is not None:
-                    linkN = 'http://sdvx.in'+re.search(linkRegex, line).group(0)
+                    linkN = 'http://sdvx.in' + re.search(linkRegex, line).group(0)
+                    difN = re.search(difficultyRegex, line).group(1)
                 # If line has adv difficulty
                 elif re.search(advRegex, line) is not None:
-                    linkA = 'http://sdvx.in'+re.search(linkRegex, line).group(0)
+                    linkA = 'http://sdvx.in' + re.search(linkRegex, line).group(0)
+                    difA = re.search(difficultyRegex, line).group(1)
                 # If line has exh difficulty
                 elif re.search(exhRegex, line) is not None:
-                    linkE = 'http://sdvx.in'+re.search(linkRegex, line).group(0)
+                    linkE = 'http://sdvx.in' + re.search(linkRegex, line).group(0)
+                    difE = re.search(difficultyRegex, line).group(1)
                 # If line has max difficulty
                 elif re.search(maxRegex, line) is not None:
-                    linkM = 'http://sdvx.in'+re.search(linkRegex, line).group(0)
+                    linkM = 'http://sdvx.in' + re.search(linkRegex, line).group(0)
+                    difM = re.search(difficultyRegex, line).group(1)
                     # Set difficulty value
                     if 'I' in line:
                         mDif = 1
@@ -257,23 +272,27 @@ async def parseChart(url, session, songID):
             if re.search(jacketRegex, line) is not None:
                 jacket = 'http://sdvx.in'+re.search(jacketRegex, line).group(1)
 
-        await addToDB(name, rom, romNS, nameTrans, art, songID, linkN, linkA, linkE, linkM, mDif, jacket, vP, vNFX, vOG, session)
+        await addToDB(name, rom, romNS, nameTrans, art, songID, linkN, linkA, linkE, linkM,
+                      difN, difA, difE, difM, mDif, jacket, vP, vNFX, vOG, session)
 
     except Exception as e:
         print(str(e)+': failure on '+url)
 
-async def addToDB(name, rom, romNS, nameTrans, art, songID, linkN, linkA, linkE, linkM, mDif, jacket, vP, vNFX, vOG, session):
+async def addToDB(name, rom, romNS, nameTrans, art, songID, linkN, linkA, linkE, linkM,
+                  difN, difA, difE, difM, mDif, jacket, vP, vNFX, vOG, session):
     # Check if it already exists, if it does update it
     searchList = await query(songID)
     if len(searchList) == 1 and searchList[0].songID == songID:
         data = {'name': name, 'nameRomanized': rom, 'nameRomNoSpace': romNS, 'nameTranslated': nameTrans, 'artist': art,
-                'songID': songID, 'linkNov': linkN, 'linkAdv': linkA, 'linkExh': linkE, 'linkMax': linkM, 'maxDif': mDif,
+                'songID': songID, 'linkNov': linkN, 'linkAdv': linkA, 'linkExh': linkE, 'linkMax': linkM,
+                'difNov': difN, 'difAdv': difA, 'difExh': difE, 'difMax': difM, 'maxDif': mDif,
                 'jacket': jacket, 'videoPlay': vP, 'videoNFX': vNFX, 'videoOG': vOG}
         session.query(Chart).filter_by(songID=searchList[0].songID).update(data)
 
     else:
         session.add(Chart(name=name, nameRomanized=rom, nameRomNoSpace=romNS, nameTranslated=nameTrans, artist=art,
-                          songID=songID, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM, maxDif=mDif,
+                          songID=songID, linkNov=linkN, linkAdv=linkA, linkExh=linkE, linkMax=linkM,
+                          difNov = difN, difAdv = difA, difExh = difE, difMax = difM, maxDif=mDif,
                           jacket=jacket, videoPlay=vP, videoNFX=vNFX, videoOG=vOG))
 
 # Used for updates until a proper update function is created
@@ -338,11 +357,14 @@ async def query(search):
     del songResultList[:]
     resultValue = 0
 
-    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
+    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, \
+        difN, difA, difE, difM, mDif, jk, vP, vNFX, vOG in \
             session.query(Chart.id, Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
-                          Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
-                          Chart.maxDif, Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
-        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
+                            Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                            Chart.difNov, Chart.difAdv, Chart.difExh, Chart.difMax, Chart.maxDif, Chart.jacket,
+                            Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
+        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM,
+                             difN, difA, difE, difM, mDif, jk, vP, vNFX, vOG))
 
     # If search is a song url, skip all of the other searches
     # Search to see if it exists
@@ -420,13 +442,27 @@ def querySearcher(search, type):
         elif type == 0 and search in songName:
             songResultList.append(song)
 
-async def randomSong():
+async def randomSong(level=0):
     session = sessionMaker()
     songList = []
-    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG in \
+    for id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, \
+        difN, difA, difE, difM, mDif, jk, vP, vNFX, vOG in \
             session.query(Chart.id, Chart.name, Chart.nameRomanized, Chart.nameRomNoSpace, Chart.nameTranslated,
-                          Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
-                          Chart.maxDif, Chart.jacket, Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
-        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM, mDif, jk, vP, vNFX, vOG))
+                            Chart.artist, Chart.songID, Chart.linkNov, Chart.linkAdv, Chart.linkExh, Chart.linkMax,
+                            Chart.difNov, Chart.difAdv, Chart.difExh, Chart.difMax, Chart.maxDif, Chart.jacket,
+                            Chart.videoPlay, Chart.videoNFX, Chart.videoOG):
+        songList.append(Song(id, name, rom, romNS, trans, art, sID, linkN, linkA, linkE, linkM,
+                             difN, difA, difE, difM, mDif, jk, vP, vNFX, vOG))
+    if level < 1:
+        return [random.choice(songList)]
 
-    return [random.choice(songList)]
+    else:
+        levelList = []
+        for song in songList:
+            if song.difMax == level or song.difExh == level or song.difAdv == level or song.difNov == level:
+                levelList.append(song)
+
+        if len(levelList) > 0:
+            return [random.choice(levelList)]
+        else:
+            return [random.choice(songList)]

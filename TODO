@@ -5,3 +5,7 @@ TODO:
 
 	SDVX:
 		* Minimum fuzzy ratio to get rid of irrelevant searches
+		* Allow updates by sdvx.in ID
+
+    Bugs:
+        * SDVX override direct url: if it exists, it'll parse through all of the sort lists again

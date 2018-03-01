@@ -119,8 +119,24 @@ async def on_message(message, client):
                     em.add_field(name='Please enter the exact title from the list below.', value=msg)
                     await client.send_message(message.channel, embed=em)
 
-            if message.content == '!sdvxin random':
+            if message.content == ('!sdvxin random'):
                 await sendMessage(await sdvxCharts.randomSong())
+
+            elif message.content.startswith('!sdvxin random'):
+                # If a random number is specified
+                if re.search(r'!sdvxin random \d+', message.content) is not None:
+                    await sendMessage(await sdvxCharts.randomSong(int(re.search(r'\d+', message.content).group(0))))
+                # Else, it might be a valid request; todo: find time modularize things, c'mon, this is a mess
+                else:
+                    # voltex query
+                    name = re.search(r'(!sdvxin\s)(.*)', message.content).group(2)
+                    songList = []
+                    try:
+                        songList = await sdvxCharts.query(name)
+                    except Exception as e:
+                        print('sdvx error: ' + name + ' ' + str(e))
+
+                    await sendMessage(songList)
 
             # update command
             elif message.content.startswith('!sdvxin update'):
@@ -134,12 +150,12 @@ async def on_message(message, client):
                     status = await sdvxCharts.updateDB(songID)
 
                     sdvxDBUpdate = False
+                    await client.change_presence(game=None)
 
                     # If specific song update, return back for better update message
                     if songID != 1:
                         return
 
-                    await client.change_presence(game=None)
                     if status:
                         em = discord.Embed(title='Success', color=0x2ecc71,
                                            description='Database updated.')
@@ -179,7 +195,11 @@ async def on_message(message, client):
                                                    description='Updating ' + songList[0].name + '...')
                                 em.set_thumbnail(url=songList[0].jacket)
                                 msg = await client.send_message(message.channel, embed=em)
-                                await updateDB(msg, songList[0].songID)
+
+                                if re.search(r'sdvx\.in/(\d+)/(\d+)[naeighm]', str(message.content)) is not None:
+                                    await updateDB(msg, message.content)
+                                else:
+                                    await updateDB(msg, songList[0].songID)
 
                                 songList = await sdvxCharts.query(name)
                                 em = discord.Embed(title='Database update finished', color=0xe67e22,
@@ -196,12 +216,12 @@ async def on_message(message, client):
                                 em.set_thumbnail(url=songList[0].jacket)
                                 msg = await client.send_message(message.channel, embed=em)
                                 await client.add_reaction(msg, '👍')
-                                await asyncio.sleep(5) # mod 60
+                                await asyncio.sleep(60)
 
                                 cached_msg = discord.utils.get(client.messages, id=msg.id)
                                 for react in cached_msg.reactions:
                                     if react.emoji == '👍':
-                                        if react.count >= 2: # mod 4
+                                        if react.count >= 4:
                                             em = discord.Embed(title='Database update started', color=0xe67e22,
                                                                description='Enough votes were received.\n'
                                                                            'Now updating ' + songList[0].name + '.\n'
@@ -226,37 +246,48 @@ async def on_message(message, client):
                         elif len(songList) == 0:
                             linkRegex = r'sdvx\.in/(\d+)/(\d+)[naeighm]'
                             if re.search(linkRegex, message.content):
-                                em = discord.Embed(title='Database update vote', color=0xf1c40f,
-                                                   description='Database update requested for '
-                                                               '[' + name + '](' + name + ')\n'
-                                                               'Please react 👍 to vote for an update.\n'
-                                                               'Song will be updated if 3 votes are received in the next minute.')
-                                msg = await client.send_message(message.channel, embed=em)
-                                await client.add_reaction(msg, '👍')
-                                await asyncio.sleep(60)
+                                # Override for me. I need to modularize these. This is getting excessive
+                                if 'override' in message.content and message.author.id == str(81415254252191744):
+                                    em = discord.Embed(title='Updating', color=0xf1c40f,
+                                                       description='Updating [' + name + '](' + name + ')')
+                                    msg = await client.send_message(message.channel, embed=em)
+                                    await updateDB(msg, message.content)
 
-                                cached_msg = discord.utils.get(client.messages, id=msg.id)
-                                for react in cached_msg.reactions:
-                                    if react.emoji == '👍':
-                                        if react.count >= 4: # modified 4
-                                            em = discord.Embed(title='Database update started', color=0xe67e22,
-                                                               description='Enough votes were received.\n'
-                                                                           'Now updating '
-                                                                           '[' + name + '](' + name + ')\n'
-                                                                           'Please refer to the bot\'s game status for status.')
-                                            await client.edit_message(msg, embed=em)
-                                            await updateDB(msg, message.content)
+                                    em = discord.Embed(title='Database update finished', color=0x2ecc71,
+                                                       description='[' + name + '](' + name + ')' + ' updated.')
+                                    await client.edit_message(msg, embed=em)
+                                else:
+                                    em = discord.Embed(title='Database update vote', color=0xf1c40f,
+                                                       description='Database update requested for '
+                                                                   '[' + name + '](' + name + ')\n'
+                                                                   'Please react 👍 to vote for an update.\n'
+                                                                   'Song will be updated if 3 votes are received in the next minute.')
+                                    msg = await client.send_message(message.channel, embed=em)
+                                    await client.add_reaction(msg, '👍')
+                                    await asyncio.sleep(60)
 
-                                            em = discord.Embed(title='Database update finished', color=0xe67e22,
-                                                               description='[' + name + '](' + name + ')' + ' updated.')
-                                            await client.edit_message(msg, embed=em)
+                                    cached_msg = discord.utils.get(client.messages, id=msg.id)
+                                    for react in cached_msg.reactions:
+                                        if react.emoji == '👍':
+                                            if react.count >= 4:
+                                                em = discord.Embed(title='Database update started', color=0xe67e22,
+                                                                   description='Enough votes were received.\n'
+                                                                               'Now updating '
+                                                                               '[' + name + '](' + name + ')\n'
+                                                                               'Please refer to the bot\'s game status for status.')
+                                                await client.edit_message(msg, embed=em)
+                                                await updateDB(msg, message.content)
 
-                                        else:
-                                            em = discord.Embed(title='Song update vote failed', color=0xe74c3c,
-                                                               description='Not enough votes were received. '
-                                                                           '[' + name + '](' + name + ') will not be updated. \n'
-                                                                           'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
-                                            await client.edit_message(msg, embed=em)
+                                                em = discord.Embed(title='Database update finished', color=0xe67e22,
+                                                                   description='[' + name + '](' + name + ')' + ' updated.')
+                                                await client.edit_message(msg, embed=em)
+
+                                            else:
+                                                em = discord.Embed(title='Song update vote failed', color=0xe74c3c,
+                                                                   description='Not enough votes were received. '
+                                                                               '[' + name + '](' + name + ') will not be updated. \n'
+                                                                               'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
+                                                await client.edit_message(msg, embed=em)
 
                             else:
                                 em = discord.Embed(title='Search Error', color=0x946b9c,
@@ -341,7 +372,8 @@ async def on_message(message, client):
         elif message.content.startswith('!cro'):
             if message.content == '!cro help':
                 em = discord.Embed(title='Commands', color=0x946b9c,
-                                   description='!sdvxin title - Searches for title in the cached sdvx.in database\n'
+                                   description='Created by Aeriq. @Aeriq if anything breaks.\n'
+                                               '!sdvxin title - Searches for title in the cached sdvx.in database\n'
                                                '!sdvxin random - Returns a random song from the sdvx.in database\n'
                                                '!sdvxin update - Updates the sdvx.in database; Doesn\'t overwrite existing songs\n'
                                                '!sdvxin update songTitle/songID/URL - Updates a specific song and overwrites all data for it\n'
