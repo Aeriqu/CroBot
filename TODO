@@ -1,11 +1,14 @@
 TODO:
 	General:
-	    * Transfer sdvx commands out of commands.py and into its own file for readability / future commands
 		* Music streaming
 
 	SDVX:
+	    * Add clearer db update progress
 		* Minimum fuzzy ratio to get rid of irrelevant searches
 		* Allow updates by sdvx.in ID
+		* Requested random sets, !sdvxin random * * *
+		* Daily updates
+		* April fool charts
 
-    Bugs:
-        * SDVX override direct url: if it exists, it'll parse through all of the sort lists again
+    Known Bugs:
+        *
