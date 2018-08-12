@@ -181,7 +181,7 @@ async def update_charts(client, message):
         cached_msg = discord.utils.get(client.messages, id=msg.id)
         for react in cached_msg.reactions:
             if react.emoji == '👍':
-                if react.count >= 3:
+                if react.count >= 5:
                     await client.edit_message(msg, embed=embeds.db_update_vote_success())
                     await update_db(client, msg)
                 else:
@@ -278,39 +278,40 @@ async def owner_update(client, message):
 
         return
 
-    # Grab a song_list from the message; however, it is useless for complete update, which is almost never done
-    name = re.search(UPDATE_REGEX + r'(\soverride)', message.content).group(2)
-    song_list = await sdvx_charts.query(name)
+    # If only update is specified, which implies update all
+    if message.content == '!sdvxin update override':
+        msg = await client.send_message(message.channel, embed=embeds.db_update_start())
+        await update_db(client, msg)
+        return
 
     try:
-        # If only update is specified, which implies update all
-        if message.content == '!sdvxin update override':
-            msg = await client.send_message(message.channel, embed=embeds.db_update_start())
-            await update_db(client, msg)
-
         # If none of the above work, it is just an individual chart update
-        else:
-            # If the song_list has 1
-            if len(song_list) == 1:
-                msg = await client.send_message(message.channel, embed=embeds.db_update_song_start(song_list[0]))
-                await update_db(client, msg, song_list[0].song_id)
 
-            # If the song list has 0
-            elif len(song_list) == 0:
-                if re.search(LINK_REGEX, message.content):
-                    msg = await client.send_message(message.channel, embed=embeds.db_update_song_start(name=name))
-                    await update_db(client, msg, message.content)
+        # Grab a song_list from the message; however, it is useless for complete update, which is almost never done
+        name = re.search(UPDATE_REGEX + '\soverride', message.content).group(2)
+        song_list = await sdvx_charts.query(name)
 
-                else:
-                    await client.send_message(message.channel, embed=embeds.search_not_found())
+        # If the song_list has 1
+        if len(song_list) == 1:
+            msg = await client.send_message(message.channel, embed=embeds.db_update_song_start(song_list[0]))
+            await update_db(client, msg, song_list[0].song_id)
 
-            # If there are too many songs
-            elif len(song_list) > 20:
-                await client.send_message(message.channel, embed=embeds.search_too_many())
+        # If the song list has 0
+        elif len(song_list) == 0:
+            if re.search(LINK_REGEX, message.content):
+                msg = await client.send_message(message.channel, embed=embeds.db_update_song_start(name=name))
+                await update_db(client, msg, message.content)
 
-            # List the songs
             else:
-                await client.send_message(message.channel, embed=embeds.search_list(song_list))
+                await client.send_message(message.channel, embed=embeds.search_not_found())
+
+        # If there are too many songs
+        elif len(song_list) > 20:
+            await client.send_message(message.channel, embed=embeds.search_too_many())
+
+        # List the songs
+        else:
+            await client.send_message(message.channel, embed=embeds.search_list(song_list))
 
     except Exception as e:
         # todo: add error exception embed messages

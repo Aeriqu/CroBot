@@ -3,21 +3,16 @@
 # Manages the timeout dictionary and routes the commands to the proper command module
 #
 
-import discord
 
-from CroBot import sdvx_charts
 from CroBot.commands import sdvx_commands as sdvx
 from CroBot.commands import cro_commands as cro
 
-import re
 import time
-import asyncio
 
 from collections import defaultdict
 
 # Timeout setup
-# todo: change back to 5
-INTERVAL = 0
+INTERVAL = 5
 # format: name, time able to talk
 timeoutDict = defaultdict(float)
 

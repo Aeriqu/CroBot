@@ -134,7 +134,7 @@ async def init(session, type):
 
 
 @retry(stop_max_attempt_number=7, wait_fixed=2500)
-async def parse_sort(url, session, type, nameList):
+async def parse_sort(url, session, type, name_list):
     print('Parsing '+ url)
     try:
         loop = asyncio.get_event_loop()
@@ -151,16 +151,16 @@ async def parse_sort(url, session, type, nameList):
                     song_id = re.search(r'/(\d+)sort.js', line).group(1)
                     await parse_chart('http://sdvx.in' + parse, session, song_id)
 
-        elif type == 1:
+        elif type is None:
             for line in req:
-                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) not in nameList:
+                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) not in name_list:
                     parse = re.search(regex, line).group(1)
                     song_id = re.search(r'/(\d+)sort.js', line).group(1)
                     await parse_chart('http://sdvx.in' + parse, session, song_id)
 
         else:
             for line in req:
-                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) in nameList:
+                if re.search(regex, line) is not None and re.search(r'/(\d+)sort.js', line).group(1) in name_list:
                     parse = re.search(regex, line).group(1)
                     song_id = re.search(r'/(\d+)sort.js', line).group(1)
                     await parse_chart('http://sdvx.in' + parse, session, song_id)

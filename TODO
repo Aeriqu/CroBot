@@ -5,10 +5,9 @@ TODO:
 	SDVX:
 	    * Add clearer db update progress
 		* Minimum fuzzy ratio to get rid of irrelevant searches
-		* Allow updates by sdvx.in ID
 		* Requested random sets, !sdvxin random * * *
 		* Daily updates
 		* April fool charts
 
     Known Bugs:
-        *
+        * Update by song_id
