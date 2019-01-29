@@ -34,4 +34,10 @@ async def on_member_join(member):
 
 
 if __name__ == '__main__':
-    client.run('token')
+    # Read in the token file and retrieves the token
+    token_file = open('token.txt', 'r')
+    token = token_file.read()
+    token_file.close()
+
+    # Passes the token to the client
+    client.run(token)

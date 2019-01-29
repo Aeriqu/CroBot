@@ -8,7 +8,7 @@ import re
 import asyncio
 
 from CroBot import sdvx_charts
-from CroBot.commands import sdvx_embeds as embeds
+from CroBot.embeds import sdvx_embeds as embeds
 
 # To keep track of db updates
 sdvx_db_update = False

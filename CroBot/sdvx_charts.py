@@ -130,7 +130,8 @@ async def init(session, type):
         partial = True
 
     for item in sort_list:
-            await parse_sort(item, session, 2 if partial else type, name_list)
+        await parse_sort(item, session, 2 if partial else type, name_list)
+        await asyncio.sleep(1)
 
 
 @retry(stop_max_attempt_number=7, wait_fixed=2500)

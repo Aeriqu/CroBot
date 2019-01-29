@@ -3,7 +3,8 @@
 # Contains all the functions needed for the Cro's functionality
 #
 
-from CroBot.commands import cro_embeds as embeds
+from CroBot.embeds import cro_embeds as embeds
+
 
 async def request(client, message):
     if message.content == '!cro help':
