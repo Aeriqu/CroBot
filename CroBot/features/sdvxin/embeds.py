@@ -1,5 +1,5 @@
 #
-# sdvx_embeds.py
+# embeds.py
 # Contains all of the embed set up for sdvx.in.
 #
 
@@ -263,13 +263,27 @@ def db_update_song_vote_success(song=None, name=None):
 ## UPDATE MESSAGES
 
 
-def db_update_failed():
+def db_update_failed(errors):
     """
-    Returns the generic update failed embed message
+    db_update_failed: Returns an embed with erorr information about the update
+    :param errors: A list of errors
+    :return: An embed with error information for a failed update
     """
     # TODO: add exception information on why it failed
+
+    description = 'Database update failed.'
+
+    # If there are 10 or less errors, loop through them and add to the description
+    if len(errors) <= 10:
+        for error in errors:
+            description.join('\n' + error)
+
+    # If there are too many errors
+    else:
+        description.join('\nToo many errors to list (max 10).')
+
     embed = discord.Embed(title='Failure', color=0xe74c3c,
-                          description='Database update failed.')
+                          description=description)
     return embed
 
 

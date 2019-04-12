@@ -10,10 +10,7 @@ import html
 import unidecode
 
 
-from googletrans import Translator
-
-
-from CroBot.features.sdvxin import regex
+from CroBot.features.sdvxin import regex, translate
 
 
 async def song_ids(raw_data):
@@ -119,23 +116,12 @@ async def sort_title(iterable_data):
 
     # If the title contains Japanese text to be translated
     if re.search(regex.japanese, title) is not None:
-        # Set up a translator to obtain translations
-        translator = Translator()
 
         # Obtain the English translation
-        translation = translator.translate(title, src='ja', dest='en')
-        title_dict['title_translated'] = translation.text
+        title_dict['title_translated'] = await translate.translate(title)
 
         # Obtain the Japanese pronunciation
-        pronunciation = translator.translate(title, dest='ja')
-        # Occasionally, pronunciation will be returned as None
-        # If this is a normal case and returns normally
-        if pronunciation.pronunciation is not None:
-            title_dict['title_pronunciation'] = unidecode.unidecode(pronunciation.pronunciation)
-        # Otherwise, if it does have issue
-        else:
-            # Set it equal to the normal title
-            title_dict['title_pronunciation'] = title
+        title_dict['title_pronunciation'] = await translate.transliterate(title)
 
     # If the title does not contain Japanese
     else:
@@ -192,14 +178,20 @@ async def sort_difficulties(iterable_data, skip_list):
         # If the line contains the general difficulty information
         if re.search(regex.dif_general, line) is not None:
             # Make sure that we aren't on any of the sort lines
-            if re.search(regex.sort_exclude, line) is None:
+            if re.search(regex.sort_exclude, line) is None and re.search(regex.dif_level, line):
                 # Guaranteed addition, add the line to the list of lines to skip
                 difficulties_dict['lines'].append(line_number)
                 # If the line is the novice difficulty
                 if re.search(regex.dif_nov, line) is not None:
                     # Add the novice chart's level and link to the dictionary
-                    difficulties_dict['data']['nov_level'] = re.search(regex.dif_level, line).group(1)
                     difficulties_dict['data']['nov_link'] = 'http://sdvx.in' + re.search(regex.dif_link, line).group(0)
+                    # In the case of it being a joke chart, such as grace's tutorial, sdvx.in will not have a difficulty number.
+                    # However, this is the only case of this happening, so we'll leave it as 1
+                    try:
+                        difficulties_dict['data']['nov_level'] = re.search(regex.dif_level, line).group(1)
+                    except:
+                        difficulties_dict['data']['nov_level'] = '1'
+
                 # If the line is the advanced difficulty
                 elif re.search(regex.dif_adv, line) is not None:
                     # Add the advanced chart's level and link to the dictionary

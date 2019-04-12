@@ -30,6 +30,8 @@ class Chart(base):
     """
     The table layout for the charts table containing all general Song information per entry
     """
+    # TODO: Update to include version number.
+        # SDVX V on sdvx.in uses a different id convention, for some reason
     __tablename__ = 'charts'
 
     id = Column(Integer, primary_key=True)
@@ -95,7 +97,9 @@ async def recreate_db():
 
 async def session_start():
     """
-    session_start: Creates a new database session and returns it
+    session_start: Creates a new database session for external functions and returns it
+                    - Keep in mind that this is only for external functions that require multiple transactions
+                        - Such as adding songs
     :return: A new database session
     """
     return session_maker()
@@ -136,26 +140,74 @@ async def exist_song(song_id):
 #    DATABASE ADD / UPDATE   #
 ##############################
 
-async def song_add(session, song_dict):
+async def add_song(session, song_dict):
     """
-    song_add: Attempts to add a song to the database
+    add_song: Attempts to add a song to the database
     :param session: The session to work from
     :param song_dict: A dictionary containing all of the song information
     :return: True if successful
              False if failed
     """
     try:
-        # Add the Chart to the session by direct
+        # Add the Chart to the session by direct dictionary to constructor conversion
         session.add(Chart(**song_dict))
+        return True
+
+    except Exception as e:
+        print(e)
+        return False
+
+
+async def update_song(session, song_dict):
+    """
+    update_song: Updates the song in the database
+    :param song_dict: the data
+    :return: True if successful
+             False if unsuccessful
+    """
+    try:
+        # Add the Chart to the session by direct
+        session.query(Chart).filter_by(song_id=song_dict['song_id']).update(song_dict)
         return True
 
     except:
         return False
 
-
 ##############################
 #       DATABASE FETCH       #
 ##############################
+
+
+async def song(song_id):
+    """
+    song: A function to fetch a song by song_id.
+    :param song_id: The song_id of the song to fetch
+    :return: A Song object
+    """
+    # Set up the database session
+    session = session_maker()
+    # Attempt to fetch the song
+    song = session.query(Chart).filter_by(song_id=song_id).first()
+    session.close()
+    return song
+
+
+async def song_ids():
+    """
+    song_ids: Fetches a list of song_ids, for cases where song_list is too much data
+    :return: A list containing song_ids,
+    """
+    # Set up the database session
+    session = session_maker()
+    # The list of songs
+    song_ids = []
+
+    # Iterate through the database, grabbing all of the song_ids
+    for id, song_id in session.query(Chart.id, Chart.song_id):
+        song_ids.append(song_id)
+
+    return song_ids
+
 
 async def song_list():
     """

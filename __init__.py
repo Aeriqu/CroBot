@@ -1,9 +1,18 @@
+import configparser
 import discord
-from CroBot import requests
 
-from discord.utils import find
+from command import Command
+# from CroBot import requests
 
+# Create a client and command object
 client = discord.Client()
+command = Command()
+
+
+# Register commands from features
+from CroBot.features.cro.commands import cro_command
+command.register_all(cro_command)
+
 
 @client.event
 async def on_ready():
@@ -15,7 +24,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    await requests.on_message(client, message)
+    await command.do(message)
 
 
 # @client.event
@@ -25,19 +34,19 @@ async def on_message(message):
 
 
 # Hacked in for personal server role permissions
-GVM_SERVER_ID = '393603672778604544'
-GVM_PLAYER_ID = '393637330700861441'
-@client.event
-async def on_member_join(member):
-    if member.server.id == GVM_SERVER_ID:
-        await client.add_roles(member, find(lambda r: r.id == GVM_PLAYER_ID, member.server.roles))
+# GVM_SERVER_ID = '393603672778604544'
+# GVM_PLAYER_ID = '393637330700861441'
+# @client.event
+# async def on_member_join(member):
+#     if member.server.id == GVM_SERVER_ID:
+#         await client.add_roles(member, find(lambda r: r.id == GVM_PLAYER_ID, member.server.roles))
 
 
 if __name__ == '__main__':
-    # Read in the token file and retrieves the token
-    token_file = open('token.txt', 'r')
-    token = token_file.read()
-    token_file.close()
+    # Read in the settings file and retrieves the token
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+    token = config['discord']['token']
 
     # Passes the token to the client
     client.run(token)

@@ -1,9 +1,13 @@
+# TODO: MASSIVE GOALS:
+# TODO:                CLEAN UP THIS SPAGHETTI
+# TODO:                MODULARIZE IT
+
+
 import os
 import re
 import random
 import requests
 
-from retrying import retry
 from datetime import datetime
 
 from googletrans import Translator
@@ -18,50 +22,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 
-# Song class for query
-class Song():
-    def __init__(self, id, n, nr, nrns, nt, art, si, ln, la, le, lm, dn, da, de, dm, md, jk, vp, vnfx, vog):
-        self.id = id
-        self.name = n
-        self.name_romanized = nr
-        self.name_rom_no_space = nrns
-        self.name_translated = nt
-        if art is None:
-            self.artist = '-'
-        else:
-            self.artist = art
-        self.song_id = si
-        self.link_nov = ln
-        self.link_adv = la
-        self.link_exh = le
 
-        self.dif_nov = dn
-        self.dif_adv = da
-        self.dif_exh = de
-        if lm is None:
-            self.link_max = ''
-            self.dif_max = 0
-            self.max_dif = 0
-        else:
-            self.link_max = lm
-            self.dif_max = dm
-            self.max_dif = md
-
-        self.jacket = jk
-        if vp is None:
-            self.video_play = ''
-        else:
-            self.video_play = vp
-        if vnfx is None:
-            self.video_nfx = ''
-        else:
-            self.video_nfx = vnfx
-
-        if vog is None:
-            self.video_og = ''
-        else:
-            self.video_og = vog
-
+from CroBot.features.sdvxin.song import Song
 
 # Database setup
 
@@ -72,37 +34,32 @@ class Chart(base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     name_romanized = Column(String)
-    name_rom_no_space = Column(String)
+    name_romanized_no_space = Column(String)
     name_translated = Column(String)
     artist = Column(String)
-    song_id = Column(String)    # Used to reduce number of requests on update
+    song_id = Column(String)
 
     link_nov = Column(String)
     link_adv = Column(String)
     link_exh = Column(String)
     link_max = Column(String)
 
-    dif_nov = Column(Integer)
-    dif_adv = Column(Integer)
-    dif_exh = Column(Integer)
-    dif_max = Column(Integer)
-    max_dif = Column(Integer)
+    link_video_play = Column(String)
+    link_video_nfx = Column(String)
+    link_video_og = Column(String)
+    link_jacket = Column(String)
 
-    jacket = Column(String)
-    video_play = Column(String)
-    video_nfx = Column(String)
-    video_og = Column(String)
-
-    def __repr__(self):
-        return "<Chart(name: '%s', romanized: '%s', nov: '%s', adv: '%s', exh: '%s', inf: '%s', jacket: '%s')>" % (
-            self.name, self.name_romanized, self.link_nov, self.link_adv, self.link_exh, self.link_max, self.jacket)
+    diff_nov = Column(Integer)
+    diff_adv = Column(Integer)
+    diff_exh = Column(Integer)
+    diff_max = Column(Integer)
+    diff_max_type = Column(Integer)
 
 
 engine = create_engine('sqlite:///sdvxCharts.db')
 session_maker = sessionmaker(bind=engine)
 
 # Initial DB set up; type 0 is rebuild ; type 1 is update
-@retry(stop_max_attempt_number=7, wait_fixed=2500)
 async def init(session, type):
     print('Starting database entry')
 
@@ -134,7 +91,6 @@ async def init(session, type):
         await asyncio.sleep(1)
 
 
-@retry(stop_max_attempt_number=7, wait_fixed=2500)
 async def parse_sort(url, session, type, name_list):
     print('Parsing '+ url)
     try:
@@ -189,7 +145,7 @@ v_nfx_regex = r'SD\d+F'
 v_og_regex = r'SD\d+O'
 v_link_regex = r'href=(\S+youtube\S+)'
 
-@retry(stop_max_attempt_number=7, wait_fixed=500)
+
 async def parse_chart(url, session, song_id):
     print('Parsing ' + url)
     try:
@@ -300,10 +256,10 @@ async def add_to_db(name, rom, rom_ns, name_trans, art, song_id, link_n, link_a,
         session.query(Chart).filter_by(song_id=search_list[0].song_id).update(data)
 
     else:
-        session.add(Chart(name=name, name_romanized=rom, name_rom_no_space=rom_ns, name_translated=name_trans, artist=art,
-                          song_id=song_id, link_nov=link_n, link_adv=link_a, link_exh=link_e, link_max=link_m,
-                          dif_nov = dif_n, dif_adv = dif_a, dif_exh = dif_e, dif_max = dif_m, max_dif=m_dif,
-                          jacket=jacket, video_play=v_p, video_nfx=v_nfx, video_og=v_og))
+        session.add(Chart(name=name, name_romanized=rom, name_romanized_no_space=rom_ns, name_translated=name_trans,
+                          artist=art, song_id=song_id, link_nov=link_n, link_adv=link_a, link_exh=link_e, link_max=link_m,
+                          diff_nov = dif_n, diff_adv = dif_a, diff_exh = dif_e, diff_max = dif_m, diff_max_type=m_dif,
+                          link_jacket=jacket, link_video_play=v_p, link_video_nfx=v_nfx, link_video_og=v_og))
 
 
 # Recreates the entire db
@@ -376,13 +332,14 @@ async def query(search):
     result_value = 0
 
     for id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m, \
-        dif_n, dif_a, dif_e, dif_m, m_dif, jk, v_p, v_nfx, v_og in \
-            session.query(Chart.id, Chart.name, Chart.name_romanized, Chart.name_rom_no_space, Chart.name_translated,
+        v_p, v_nfx, v_og, jk, dif_n, dif_a, dif_e, dif_m, m_dif  in \
+            session.query(Chart.id, Chart.name, Chart.name_romanized, Chart.name_romanized_no_space, Chart.name_translated,
                           Chart.artist, Chart.song_id, Chart.link_nov, Chart.link_adv, Chart.link_exh, Chart.link_max,
-                          Chart.dif_nov, Chart.dif_adv, Chart.dif_exh, Chart.dif_max, Chart.max_dif, Chart.jacket,
-                          Chart.video_play, Chart.video_nfx, Chart.video_og):
-        song_list.append(Song(id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m,
-                              dif_n, dif_a, dif_e, dif_m, m_dif, jk, v_p, v_nfx, v_og))
+                          Chart.link_video_play, Chart.link_video_nfx, Chart.link_video_og, Chart.link_jacket,
+                          Chart.diff_nov, Chart.diff_adv, Chart.diff_exh, Chart.diff_max, Chart.diff_max_type):
+        song_list.append(Song(id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m, v_p, v_nfx, v_og,
+                              jk, dif_n, dif_a, dif_e, dif_m, m_dif))
+
 
     # If search is a song url, skip all of the other searches
     # Search to see if it exists
@@ -466,20 +423,20 @@ async def random_song(level=0):
     session = session_maker()
     song_list = []
     for id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m, \
-        dif_n, dif_a, dif_e, dif_m, m_dif, jk, v_p, v_nfx, v_og in \
-            session.query(Chart.id, Chart.name, Chart.name_romanized, Chart.name_rom_no_space, Chart.name_translated,
+        v_p, v_nfx, v_og, jk, dif_n, dif_a, dif_e, dif_m, m_dif  in \
+            session.query(Chart.id, Chart.name, Chart.name_romanized, Chart.name_romanized_no_space, Chart.name_translated,
                           Chart.artist, Chart.song_id, Chart.link_nov, Chart.link_adv, Chart.link_exh, Chart.link_max,
-                          Chart.dif_nov, Chart.dif_adv, Chart.dif_exh, Chart.dif_max, Chart.max_dif, Chart.jacket,
-                          Chart.video_play, Chart.video_nfx, Chart.video_og):
-        song_list.append(Song(id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m,
-                             dif_n, dif_a, dif_e, dif_m, m_dif, jk, v_p, v_nfx, v_og))
+                          Chart.link_video_play, Chart.link_video_nfx, Chart.link_video_og, Chart.link_jacket,
+                          Chart.diff_nov, Chart.diff_adv, Chart.diff_exh, Chart.diff_max, Chart.diff_max_type):
+        song_list.append(Song(id, name, rom, rom_ns, trans, art, s_id, link_n, link_a, link_e, link_m, v_p, v_nfx, v_og,
+                              jk, dif_n, dif_a, dif_e, dif_m, m_dif))
     if level < 1:
         return [random.choice(song_list)]
 
     else:
         level_list = []
         for song in song_list:
-            if song.dif_max == level or song.dif_exh == level or song.dif_adv == level or song.dif_nov == level:
+            if song.diff_max == level or song.diff_exh == level or song.diff_adv == level or song.diff_nov == level:
                 level_list.append(song)
 
         if len(level_list) > 0:

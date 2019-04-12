@@ -127,7 +127,9 @@ async def song_sort(song_id):
     if raw_data is not None:
         try:
             sort_dict.update(await parse.song_sort(raw_data))
-        except:
+        except Exception as e:
+            print(raw_data)
+            print(e)
             errors.append('Error (Parse Sort Data): ' + song_id)
     # If the GET request failed
     else:
@@ -148,7 +150,7 @@ async def song_ids():
              If there are any errors, errors is added to the dictionary with a list of errors that occurred
     """
     # A list of all the song lists to iterate through
-    song_lists = ['http://sdvx.in/sort/sort_a.js', 'http://sdvx.in/sort/sort_k.js', 'http://sdvx.in/sort/sort_s.js',
+    song_lists = ['http://sdvx.in/files/index.js', 'http://sdvx.in/sort/sort_a.js', 'http://sdvx.in/sort/sort_k.js', 'http://sdvx.in/sort/sort_s.js',
                   'http://sdvx.in/sort/sort_t.js', 'http://sdvx.in/sort/sort_n.js', 'http://sdvx.in/sort/sort_h.js',
                   'http://sdvx.in/sort/sort_m.js', 'http://sdvx.in/sort/sort_y.js', 'http://sdvx.in/sort/sort_r.js',
                   'http://sdvx.in/sort/sort_w.js', 'http://sdvx.in/files/del.js']

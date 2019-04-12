@@ -4,8 +4,8 @@
 #
 
 
-from CroBot.commands import sdvx_commands as sdvx
-from CroBot.commands import cro_commands as cro
+from CroBot.features.sdvxin import commands as sdvx
+from CroBot.features.cro import commands as cro
 
 import time
 
