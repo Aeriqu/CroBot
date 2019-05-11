@@ -21,6 +21,7 @@ dif_max = r'LV\d+[IGHMV]'
 dif_link = r'/\d.*htm'
 dif_level = r'(\d+)</div>'
 
+kanji = r'[\u4E00-\u9FAF]'
 japanese = r'[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B' # https://gist.github.com/sym3tri/980083 (slight modifications)
 
 video_play = r'MV\d+[EIGHMV]'

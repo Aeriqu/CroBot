@@ -10,12 +10,19 @@ The current main feature includes a search for sdvx.in. More will be added as ti
 ### Prerequisites
 
 There are quite a few requirements for this bot:
-* Python 3.4+ ; Lowest version tested: 3.5.2
-* [discord.py](https://github.com/Rapptz/discord.py) ; Version used for this bot: 0.16.12
-* [sqlalchemy](https://www.sqlalchemy.org/) ; Version used for this bot: 1.1
-* [retrying](https://pypi.python.org/pypi/retrying) ; Version used for this bot: 1.3.3
-* [googletrans](https://pypi.python.org/pypi/googletrans) ; Version used for this bot: 2.2.0
-* [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy) ; Version used for this bot: 0.16.0
+* Python 3.5+ ; Lowest version tested: 3.6
+* [discord.py](https://github.com/Rapptz/discord.py)
+* [sqlalchemy](https://www.sqlalchemy.org/)
+* [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy)
+* [Unidecode](https://pypi.org/project/Unidecode/)
+* [aiohttp](https://aiohttp.readthedocs.io/en/stable/)
+* [kytea (python)](https://github.com/chezou/Mykytea-python)
+* [romkan](https://pypi.org/project/romkan/)
+
+
+To properly use kytea, a model file is required. You can obtain one from the [kytea
+source](http://www.phontron.com/kytea/#download).
+
 
 ## License
 

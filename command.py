@@ -47,7 +47,7 @@ class Command(object):
         def random(message_text):
             # Logic goes here
 
-        Note: Should not be used with main Command object in __init__.py
+        Note: Should not be used with main Command object in run.py
         """
         def decorator(function):
             self.commands[self.starters[0] + ' ' + argument] = function

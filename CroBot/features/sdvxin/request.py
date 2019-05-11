@@ -4,10 +4,27 @@
 # Functions named here are assumed that they're called such as request.x so imported calls will look clean
 #
 
-import requests
+import aiohttp
 
 
 from CroBot.features.sdvxin import parse
+
+
+####################
+#     AIOHTTP      #
+####################
+
+
+async def fetch_get(link):
+    """
+    fetch_get: The helper function for AIOHTTP which creates a session and then gets information from the link
+    :param link: The link to fetch from
+    :return: the text from the request
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.get(link) as response:
+            content = await response.content.read()
+            return content.decode('utf-8', 'replace')
 
 
 ####################
@@ -24,17 +41,19 @@ async def attempt_link_get(link, attempts=5):
              None if it was a failed attempt
     """
     # Attempt to retry on fail
-    for attempt in range(attempts):
+    # for attempt in range(attempts):
         # Attempt to get the link
-        try:
-            req = requests.get(link)
-            return req.text
+    try:
+        req = await fetch_get(link)
+        return req
         # If it fails due to a connection or some other issue (not sure of what yet), try again until attempts are gone
-        except:
-            continue
+        # except:
+        #     continue
 
     # Failed attempt
-    return None
+    except Exception as e:
+        print(e)
+        return None
 
 
 ####################
@@ -76,7 +95,7 @@ async def song_data(song_id):
     errors = []
 
     # Attempt to fetch the raw javascript data
-    raw_data = await attempt_link_get('http://sdvx.in/' + song_id[:2] + '/js/' + song_id + 'data.js')
+    raw_data = await attempt_link_get('https://sdvx.in/' + song_id[:2] + '/js/' + song_id + 'data.js')
 
     # If fetching the data was successful
     if raw_data is not None:
@@ -121,7 +140,7 @@ async def song_sort(song_id):
     errors = []
 
     # Attempt to fetch the raw javascript data
-    raw_data = await attempt_link_get('http://sdvx.in/' + song_id[:2] + '/js/' + song_id + 'sort.js')
+    raw_data = await attempt_link_get('https://sdvx.in/' + song_id[:2] + '/js/' + song_id + 'sort.js')
 
     # If fetching the data was successful
     if raw_data is not None:

@@ -75,6 +75,8 @@ async def song_sort(raw_data):
     # Grab the title of the chart
     title = await sort_title(iterable_data)
     sort_dict.update(title)
+    # TODO: Add error checking for title
+    # {'song_id': '04378', 'title': 'ファイナルレター', 'title_translated': 'Error 401000: The request is not authorized because credentials are missing or invalid.', 'title_pronunciation': 'Error 401000: The request is not authorized because credentials are missing or invalid.', 'artist': '', 'nov_link': 'http://sdvx.in/04/04378n.htm', 'nov_level': '06', 'adv_level': '12', 'adv_link': 'http://sdvx.in/04/04378a.htm', 'exh_level': '16', 'exh_link': 'http://sdvx.in/04/04378e.htm', 'max_level': '18', 'max_link': 'http://sdvx.in/04/04378m.htm', 'video_play': 'https://www.youtube.com/watch?v=WMsPky3YQRQ', 'video_nofx': 'https://www.youtube.com/watch?v=wQiPB9V8a38', 'jacket': 'http://sdvx.in/04/jacket/04378m.png'}
 
     # Grab the artist of the song
     artist = await sort_artist(iterable_data, skip_list)
@@ -90,6 +92,7 @@ async def song_sort(raw_data):
     videos = await sort_videos(iterable_data, skip_list)
     sort_dict.update(videos['data'])
     skip_list += videos['lines']
+
 
     return sort_dict
 
@@ -119,6 +122,7 @@ async def sort_title(iterable_data):
 
         # Obtain the English translation
         title_dict['title_translated'] = await translate.translate(title)
+
 
         # Obtain the Japanese pronunciation
         title_dict['title_pronunciation'] = await translate.transliterate(title)
