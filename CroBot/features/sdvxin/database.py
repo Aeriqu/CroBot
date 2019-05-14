@@ -16,29 +16,23 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 
 
-# Internal Imports
-from CroBot.features.sdvxin.song import Song
-
-
 ##############################
 # DATABASE SETUP / FUNCTIONS #
 ##############################
 
 
 base = declarative_base()
-class Chart(base):
+class Song(base):
     """
     The table layout for the charts table containing all general Song information per entry
     """
-    # TODO: Update to include version number.
-        # SDVX V on sdvx.in uses a different id convention, for some reason
-    __tablename__ = 'charts'
+    __tablename__ = 'songs'
 
     id = Column(Integer, primary_key=True)
     song_id = Column(String)
     title = Column(String)
     title_translated = Column(String)
-    title_pronunciation = Column(String)
+    title_romanized = Column(String)
     artist = Column(String)
 
     nov_level = Column(Integer)
@@ -118,7 +112,8 @@ async def session_end(session):
 #       DATABASE CHECK       #
 ##############################
 
-async def exist_song(song_id):
+
+async def song_exists(song_id):
     """
     exist_song: Checks to see if the song exists in the database by sdvx.in song_id
     :param song_id: The song_id of the song to check
@@ -128,7 +123,7 @@ async def exist_song(song_id):
     # Set up the database session
     session = session_maker()
     # If the song_id exists
-    if session.query(Chart).filter_by(song_id=song_id).scalar() is not None:
+    if session.query(Song).filter_by(song_id=song_id).scalar() is not None:
         session.close()
         return True
 
@@ -140,7 +135,8 @@ async def exist_song(song_id):
 #    DATABASE ADD / UPDATE   #
 ##############################
 
-async def add_song(session, song_dict):
+
+async def song_add(session, song_dict):
     """
     add_song: Attempts to add a song to the database
     :param session: The session to work from
@@ -150,24 +146,24 @@ async def add_song(session, song_dict):
     """
     try:
         # Add the Chart to the session by direct dictionary to constructor conversion
-        session.add(Chart(**song_dict))
+        session.add(Song(**song_dict))
         return True
 
-    except Exception as e:
-        print(e)
+    except:
         return False
 
 
-async def update_song(session, song_dict):
+async def song_update(session, song_dict):
     """
     update_song: Updates the song in the database
+    :param session: The session to work from
     :param song_dict: the data
     :return: True if successful
              False if unsuccessful
     """
     try:
         # Add the Chart to the session by direct
-        session.query(Chart).filter_by(song_id=song_dict['song_id']).update(song_dict)
+        session.query(Song).filter_by(song_id=song_dict['song_id']).update(song_dict)
         return True
 
     except:
@@ -182,12 +178,12 @@ async def song(song_id):
     """
     song: A function to fetch a song by song_id.
     :param song_id: The song_id of the song to fetch
-    :return: A Song object
+    :return: A Chart object
     """
     # Set up the database session
     session = session_maker()
     # Attempt to fetch the song
-    song = session.query(Chart).filter_by(song_id=song_id).first()
+    song = session.query(Song).filter_by(song_id=song_id).first()
     session.close()
     return song
 
@@ -203,7 +199,7 @@ async def song_ids():
     song_ids = []
 
     # Iterate through the database, grabbing all of the song_ids
-    for id, song_id in session.query(Chart.id, Chart.song_id):
+    for id, song_id in session.query(Song.id, Song.song_id):
         song_ids.append(song_id)
 
     return song_ids
@@ -219,17 +215,8 @@ async def song_list():
     # The list of songs
     song_list = []
 
-    # Grab all of the charts in the database
-    for id, song_id, title, title_translated, title_pronunciation, artist, nov_level, nov_link, \
-        adv_level, adv_link, exh_level, exh_link, max_level, max_link, video_play, video_nofx, video_og, jacket \
-        in session.query(Chart.id, Chart.song_id, Chart.title, Chart.title_translated, Chart.title_pronunciation,
-                         Chart.artist, Chart.nov_level, Chart.nov_link, Chart.adv_level, Chart.adv_link,
-                         Chart.exh_level, Chart.exh_link, Chart.max_level, Chart.max_link, Chart.video_play,
-                         Chart.video_nofx, Chart.video_og, Chart.jacket):
-        # Append the chart to the song list in the form of Song class
-        song_list.append(Song(id, song_id, title, title_translated, title_pronunciation, artist, nov_level,
-                              nov_link, adv_level, adv_link, exh_level, exh_link, max_level, max_link,
-                              video_play, video_nofx, video_og, jacket))
+    for chart in session.query(Song).all():
+        song_list.append(chart)
 
     # Close the session
     session.close()

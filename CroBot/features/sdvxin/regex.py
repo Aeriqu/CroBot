@@ -5,10 +5,10 @@
 
 id_parse = r'/(\d+)sort.js'
 jacket = r'(/\d+/jacket/\d+[em]....)'
-link_regex = r'sdvx\.in/\d+/(\d+)[naeighmv]'
+link = r'sdvx\.in/\d+/(\d+)[naeighmv]'
 
 
-## Regex to be used for parse_chart
+# Regex to be used for parse_chart
 title = r'(\d+)\s+(.+)' # Group 1 is sdvx.in's id for the song; Group 2 is the song name
 artist = r'ARTIST\d*.*2>.*/\s(.*)<'
 sort_exclude = r'SORT\d*' # Used to filter out the sort line which the dif regex catches
@@ -30,6 +30,8 @@ video_nofx = r'SD\d+F'
 video_og  = r'SD\d+O'
 video_link = r'href=(\S+youtube\S+)'
 
-## Regex to be used for ocmmands
+# Regex to be used for sdvxin commands
 query = r'(!sdvxin\s)(.*)'
 update = r'(!sdvxin\supdate\s)(.*)'
+song_id = r'0\d{4}'
+version = r'\d{5}(.)'

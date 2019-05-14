@@ -125,13 +125,13 @@ async def sort_title(iterable_data):
 
 
         # Obtain the Japanese pronunciation
-        title_dict['title_pronunciation'] = await translate.transliterate(title)
+        title_dict['title_romanized'] = await translate.transliterate(title)
 
     # If the title does not contain Japanese
     else:
         # Set both title_translated and title_pronunciation to the original title for database purposes
         title_dict['title_translated'] = title
-        title_dict['title_pronunciation'] = title
+        title_dict['title_romanized'] = title
 
     return title_dict
 

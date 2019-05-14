@@ -3,7 +3,12 @@
 # Contains all of the embed set up for sdvx.in.
 #
 
+
+import re
 import discord
+
+from CroBot.features.sdvxin import regex
+
 
 # Embed colors to maintain consistency
 #   # General: 0x946b9c
@@ -59,58 +64,87 @@ def search_list(song_list):
     return embed
 
 
-def song(song_list):
+def song(song):
     """
-    Returns the general song embed
+    song: Creates a discord embed from the passed song parameter
+    :param song: The song to create an embed from
+    :return: A discord embed object
     """
-    # TODO: modularize further and make checks for each difficulty to support single difficulty charts; also needed for sdvx_charts.py
-    # Set up embed with the song title
-    embed = discord.Embed(title=song_list[0].name, color=0x946b9c)
-    # Adds the jacket
-    embed.set_thumbnail(url=song_list[0].jacket)
+    # Set up an embed with the song title, color, and jacket
+    embed = discord.Embed(title=song.title, color=0x946b9c)
+    embed.set_thumbnail(url=song.jacket)
 
-    # Adds the difficulties and the charts
-    if song_list[0].max_dif is not 0:
-        val = '[NOVICE](' + str(song_list[0].link_nov) + ') - [ADVANCED](' + str(
-            song_list[0].link_adv) + ') - [EXHAUST](' + str(song_list[0].link_exh) + ') - '
+    description_level = ''
 
-        if song_list[0].max_dif is 1:
-            val += '[INFINITE](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 2:
-            val += '[GRAVITY](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 3:
-            val += '[HEAVENLY](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 4:
-            val += '[MAXIMUM](' + str(song_list[0].link_max) + ')'
+    # Add the novice if it exists
+    if song.nov_level is not None:
+        description_level += '[NOV ' + song.nov_level + '](' + song.nov_link + ') - '
 
-        embed.add_field(name=song_list[0].artist, inline=False, value=val)
-    else:
-        embed.add_field(name=song_list[0].artist, inline=False,
-                        value='[NOVICE](' + str(song_list[0].link_nov) + ') - [ADVANCED](' + str(song_list[0].link_adv) +
-                           ') - [EXHAUST](' + str(song_list[0].link_exh) + ')')
+    # Add the advanced if it exists
+    if song.adv_level is not None:
+        description_level += '[ADV ' + song.adv_level + '](' + song.adv_link + ') - '
 
-    # Video field
-    if song_list[0].video_play is not '' or song_list[0].video_nfx is not '' or song_list[0].video_og is not '':
-        val = ''
-        nam = 'Video'
-        # In game video
-        if song_list[0].video_play is not '':
-            val += '[PLAY](' + song_list[0].video_play + ')'
-        # Separator pt 1
-        if song_list[0].video_play is not '' and song_list[0].video_nfx is not '':
-            val += ' - '
-            nam = 'Videos'
-        # NOFX video
-        if song_list[0].video_nfx is not '':
-            val += '[NO FX](' + song_list[0].video_nfx + ')'
-        # Separator pt 2 - I should find a better way to do this
-        if song_list[0].video_nfx is not '' and song_list[0].video_og is not '':
-            val += ' - '
-            nam = 'Videos'
-        # Sometimes has an other
-        if song_list[0].video_og is not '':
-            val += '[OTHER](' + song_list[0].video_og + ')'
-        embed.add_field(name=nam, value=val)
+    # Add the exhaust if it exists
+    if song.exh_level is not None:
+        description_level += '[EXH ' + song.exh_level + '](' + song.exh_link + ')'
+
+    # Add the max if it exists
+    if song.max_level is not None:
+        # Add a continuation hyphen to match formatting
+        description_level += ' - '
+
+        # Fetch the difficulty version and then add the respective version
+        version = re.search(regex.version, song.max_link).group(1)
+
+        # If the max is inf
+        if version == 'i':
+            description_level += '[INF ' + song.max_level + '](' + song.max_link + ')'
+
+        # If the max is grv
+        elif version == 'g':
+            description_level += '[GRV ' + song.max_level + '](' + song.max_link + ')'
+
+        # If the max is hvn
+        elif version == 'h':
+            description_level += '[HVN ' + song.max_level + '](' + song.max_link + ')'
+
+        # If the max is max / unknown
+        else:
+            description_level += '[MXM ' + song.max_level + '](' + song.max_link + ')'
+
+    # Fetch the artist, if it exists
+    artist = '-'
+    if song.artist != '':
+        artist = song.artist
+
+    # Add the artist and the level links
+    embed.add_field(name=artist, value=description_level, inline=False)
+
+    # Add videos if they exist
+    description_videos = ''
+
+    # In game video
+    if song.video_play is not None:
+        description_videos += '[PLAY](' + song.video_play + ')'
+
+    # Add a separator if in game and any of the other two exist
+    if song.video_play is not None and (song.video_nofx is not None or song.video_og is not None):
+        description_videos += ' - '
+
+    # No fx video
+    if song.video_nofx is not None:
+        description_videos += '[NO FX](' + song.video_nofx + ')'
+
+    # Add a separator if no fx and original exists
+    if song.video_nofx is not None and song.video_og is not None:
+        description_videos += ' - '
+
+    # Original song
+    if song.video_og is not None:
+        description_videos += '[NO FX](' + song.video_og + ')'
+
+    # Add the video field
+    embed.add_field(name='Videos', value=description_videos)
 
     return embed
 
@@ -200,7 +234,7 @@ def db_update_success():
     """
     Returns the generic update success embed message
     """
-    embed = discord.Embed(title='Success', color=0x2ecc71, description='Database updated.')
+    embed = discord.Embed(title='Database update successful', color=0x2ecc71, description='Database updated.')
     return embed
 
 
@@ -280,9 +314,9 @@ def db_update_failed(errors):
 
     # If there are too many errors
     else:
-        description.join('\nToo many errors to list (max 10).')
+        description.join('\nThere were ' + str(len(errors)) + ' errors.')
 
-    embed = discord.Embed(title='Failure', color=0xe74c3c,
+    embed = discord.Embed(title='Database update failure', color=0xe74c3c,
                           description=description)
     return embed
 
