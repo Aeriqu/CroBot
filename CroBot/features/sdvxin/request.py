@@ -71,8 +71,10 @@ async def song(song_id):
     song_dict = {'song_id': song_id}
     # Grab sort.js information and update song_dict
     song_dict.update(await song_sort(song_id))
-    # Grab data.js information and update song_dict
-    song_dict.update(await song_data(song_id))
+
+    # Grab data.js information and update song_dict if jacket doesn't already exist from song_sort
+    if 'jacket' not in song_dict:
+        song_dict.update(await song_data(song_id))
 
     return song_dict
 
@@ -129,6 +131,7 @@ async def song_sort(song_id):
             - Found in variables MV[SongID][Difficulty]
         - NoFX / Original audio videos
             - Found in SD[SongID][F/O]
+        - Jacket overrides
     :param song_id: The sdvx.in ID of the song
     :return: A dictionary containing information from sort.js
              If there are any errors, errors is added to the dictionary with a list of errors that occurred

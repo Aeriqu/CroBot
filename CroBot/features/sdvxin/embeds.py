@@ -109,6 +109,10 @@ def song(song):
         elif version == 'h':
             description_level += '[HVN ' + str(song.max_level) + '](' + song.max_link + ')'
 
+        # If the max is hvn
+        elif version == 'v':
+            description_level += '[VVD ' + str(song.max_level) + '](' + song.max_link + ')'
+
         # If the max is max / unknown
         else:
             description_level += '[MXM ' + str(song.max_level) + '](' + song.max_link + ')'
