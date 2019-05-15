@@ -1,8 +1,11 @@
 # Python compiled
 __pycache__/
 
-#PyCharm
+# PyCharm
 .idea/
 
 # Databases
 *.db
+
+# Application files
+token.txt

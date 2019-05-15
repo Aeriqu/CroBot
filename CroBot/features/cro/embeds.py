@@ -1,3 +1,8 @@
+#
+# embeds.py
+# Contains all of the embeds for Cro's features
+#
+
 
 import discord
 

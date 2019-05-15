@@ -1,9 +1,14 @@
 #
-# sdvx_embeds.py
+# embeds.py
 # Contains all of the embed set up for sdvx.in.
 #
 
+
+import re
 import discord
+
+from CroBot.features.sdvxin import regex
+
 
 # Embed colors to maintain consistency
 #   # General: 0x946b9c
@@ -52,65 +57,94 @@ def search_list(song_list):
     """
     msg = ''
     for song in song_list:
-        msg += song.name + ' (' + song.song_id + ')\n'
+        msg += song.title + ' (' + song.song_id + ')\n'
 
     embed = discord.Embed(title='Multiple songs found.', color=0xe67e22)
     embed.add_field(name='Please enter the exact title or song id from the list below.', value=msg)
     return embed
 
 
-def song(song_list):
+def song(song):
     """
-    Returns the general song embed
+    song: Creates a discord embed from the passed song parameter
+    :param song: The song to create an embed from
+    :return: A discord embed object
     """
-    # TODO: modularize further and make checks for each difficulty to support single difficulty charts; also needed for sdvx_charts.py
-    # Set up embed with the song title
-    embed = discord.Embed(title=song_list[0].name, color=0x946b9c)
-    # Adds the jacket
-    embed.set_thumbnail(url=song_list[0].jacket)
+    # Set up an embed with the song title, color, and jacket
+    embed = discord.Embed(title=song.title, color=0x946b9c)
+    embed.set_thumbnail(url=song.jacket)
 
-    # Adds the difficulties and the charts
-    if song_list[0].max_dif is not 0:
-        val = '[NOVICE](' + str(song_list[0].link_nov) + ') - [ADVANCED](' + str(
-            song_list[0].link_adv) + ') - [EXHAUST](' + str(song_list[0].link_exh) + ') - '
+    description_level = ''
 
-        if song_list[0].max_dif is 1:
-            val += '[INFINITE](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 2:
-            val += '[GRAVITY](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 3:
-            val += '[HEAVENLY](' + str(song_list[0].link_max) + ')'
-        elif song_list[0].max_dif is 4:
-            val += '[MAXIMUM](' + str(song_list[0].link_max) + ')'
+    # Add the novice if it exists
+    if song.nov_level is not None:
+        description_level += '[NOV ' + str(song.nov_level) + '](' + song.nov_link + ') - '
 
-        embed.add_field(name=song_list[0].artist, inline=False, value=val)
-    else:
-        embed.add_field(name=song_list[0].artist, inline=False,
-                        value='[NOVICE](' + str(song_list[0].link_nov) + ') - [ADVANCED](' + str(song_list[0].link_adv) +
-                           ') - [EXHAUST](' + str(song_list[0].link_exh) + ')')
+    # Add the advanced if it exists
+    if song.adv_level is not None:
+        description_level += '[ADV ' + str(song.adv_level) + '](' + song.adv_link + ') - '
 
-    # Video field
-    if song_list[0].video_play is not '' or song_list[0].video_nfx is not '' or song_list[0].video_og is not '':
-        val = ''
-        nam = 'Video'
-        # In game video
-        if song_list[0].video_play is not '':
-            val += '[PLAY](' + song_list[0].video_play + ')'
-        # Separator pt 1
-        if song_list[0].video_play is not '' and song_list[0].video_nfx is not '':
-            val += ' - '
-            nam = 'Videos'
-        # NOFX video
-        if song_list[0].video_nfx is not '':
-            val += '[NO FX](' + song_list[0].video_nfx + ')'
-        # Separator pt 2 - I should find a better way to do this
-        if song_list[0].video_nfx is not '' and song_list[0].video_og is not '':
-            val += ' - '
-            nam = 'Videos'
-        # Sometimes has an other
-        if song_list[0].video_og is not '':
-            val += '[OTHER](' + song_list[0].video_og + ')'
-        embed.add_field(name=nam, value=val)
+    # Add the exhaust if it exists
+    if song.exh_level is not None:
+        description_level += '[EXH ' + str(song.exh_level) + '](' + song.exh_link + ')'
+
+    # Add the max if it exists
+    if song.max_level is not None:
+        # Add a continuation hyphen to match formatting
+        description_level += ' - '
+
+        # Fetch the difficulty version and then add the respective version
+        version = re.search(regex.version, song.max_link).group(1)
+
+        # If the max is inf
+        if version == 'i':
+            description_level += '[INF ' + str(song.max_level) + '](' + song.max_link + ')'
+
+        # If the max is grv
+        elif version == 'g':
+            description_level += '[GRV ' + str(song.max_level) + '](' + song.max_link + ')'
+
+        # If the max is hvn
+        elif version == 'h':
+            description_level += '[HVN ' + str(song.max_level) + '](' + song.max_link + ')'
+
+        # If the max is max / unknown
+        else:
+            description_level += '[MXM ' + str(song.max_level) + '](' + song.max_link + ')'
+
+    # Fetch the artist, if it exists
+    artist = '-'
+    if song.artist != '':
+        artist = song.artist
+
+    # Add the artist and the level links
+    embed.add_field(name=artist, value=description_level, inline=False)
+
+    # Add videos if they exist
+    description_videos = ''
+
+    # In game video
+    if song.video_play is not None:
+        description_videos += '[PLAY](' + song.video_play + ')'
+
+    # Add a separator if in game and any of the other two exist
+    if song.video_play is not None and (song.video_nofx is not None or song.video_og is not None):
+        description_videos += ' - '
+
+    # No fx video
+    if song.video_nofx is not None:
+        description_videos += '[NO FX](' + song.video_nofx + ')'
+
+    # Add a separator if no fx and original exists
+    if song.video_nofx is not None and song.video_og is not None:
+        description_videos += ' - '
+
+    # Original song
+    if song.video_og is not None:
+        description_videos += '[NO FX](' + song.video_og + ')'
+
+    # Add the video field
+    embed.add_field(name='Videos', value=description_videos)
 
     return embed
 
@@ -142,7 +176,7 @@ def db_update_song_vote_start(song=None, name=None):
     # If a song is specified
     if song:
         embed = discord.Embed(title='Database update vote', color=0xf1c40f,
-                              description='Database update requested for ' + song.name + '.\n'
+                              description='Database update requested for ' + song.title + '.\n'
                                           'Please react 👍 to vote for an update.\n'
                                           'Song will be updated if 3 votes (4 reacts) are received in the next minute.')
         embed.set_thumbnail(url=song.jacket)
@@ -178,8 +212,8 @@ def db_update_song_start(song=None, name=None):
     """
     embed = None
     if song:
-        embed = discord.Embed(title='Updating: ' + song.name, color=0x946b9c,
-                              description='The update for \'' + song.name + '\' has started.')
+        embed = discord.Embed(title='Updating: ' + song.title, color=0x946b9c,
+                              description='The update for \'' + song.title + '\' has started.')
         embed.set_thumbnail(url=song.jacket)
 
     else:
@@ -200,7 +234,7 @@ def db_update_success():
     """
     Returns the generic update success embed message
     """
-    embed = discord.Embed(title='Success', color=0x2ecc71, description='Database updated.')
+    embed = discord.Embed(title='Database update successful', color=0x2ecc71, description='Database updated.')
     return embed
 
 
@@ -210,8 +244,8 @@ def db_update_song_success(song=None, name=None):
     """
     embed = None
     if song:
-        embed = discord.Embed(title='Update finished for: ' + song.name, color=0xe67e22,
-                              description='The update for \'' + song.name + '\' has finished.')
+        embed = discord.Embed(title='Update finished for: ' + song.title, color=0xe67e22,
+                              description='The update for \'' + song.title + '\' has finished.')
         embed.set_thumbnail(url=song.jacket)
 
     else:
@@ -243,7 +277,7 @@ def db_update_song_vote_success(song=None, name=None):
     if song:
         embed = discord.Embed(title='Database update started', color=0xe67e22,
                               description='Enough votes were received.\n'
-                                          'Now updating \'' + song.name + '\'.\n'
+                                          'Now updating \'' + song.title + '\'.\n'
                                           'Please refer to the bot\'s game status for status.')
         embed.set_thumbnail(url=song.jacket)
 
@@ -263,13 +297,27 @@ def db_update_song_vote_success(song=None, name=None):
 ## UPDATE MESSAGES
 
 
-def db_update_failed():
+def db_update_failed(errors):
     """
-    Returns the generic update failed embed message
+    db_update_failed: Returns an embed with erorr information about the update
+    :param errors: A list of errors
+    :return: An embed with error information for a failed update
     """
     # TODO: add exception information on why it failed
-    embed = discord.Embed(title='Failure', color=0xe74c3c,
-                          description='Database update failed.')
+
+    description = 'Database update failed.'
+
+    # If there are 10 or less errors, loop through them and add to the description
+    if len(errors) <= 10:
+        for error in errors:
+            description.join('\n' + error)
+
+    # If there are too many errors
+    else:
+        description.join('\nThere were ' + str(len(errors)) + ' errors.')
+
+    embed = discord.Embed(title='Database update failure', color=0xe74c3c,
+                          description=description)
     return embed
 
 
@@ -290,7 +338,7 @@ def db_update_song_vote_failed(song=None, name=None, react=None):
     embed = None
     if song:
         embed = discord.Embed(title='Song update vote failed', color=0xe74c3c,
-                              description='Not enough votes were received. \'' + song.name + '\' will not be updated. \n'
+                              description='Not enough votes were received. \'' + song.title + '\' will not be updated. \n'
                                           'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
 
     else:
