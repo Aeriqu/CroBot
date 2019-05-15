@@ -57,7 +57,7 @@ def search_list(song_list):
     """
     msg = ''
     for song in song_list:
-        msg += song.name + ' (' + song.song_id + ')\n'
+        msg += song.title + ' (' + song.song_id + ')\n'
 
     embed = discord.Embed(title='Multiple songs found.', color=0xe67e22)
     embed.add_field(name='Please enter the exact title or song id from the list below.', value=msg)
@@ -78,15 +78,15 @@ def song(song):
 
     # Add the novice if it exists
     if song.nov_level is not None:
-        description_level += '[NOV ' + song.nov_level + '](' + song.nov_link + ') - '
+        description_level += '[NOV ' + str(song.nov_level) + '](' + song.nov_link + ') - '
 
     # Add the advanced if it exists
     if song.adv_level is not None:
-        description_level += '[ADV ' + song.adv_level + '](' + song.adv_link + ') - '
+        description_level += '[ADV ' + str(song.adv_level) + '](' + song.adv_link + ') - '
 
     # Add the exhaust if it exists
     if song.exh_level is not None:
-        description_level += '[EXH ' + song.exh_level + '](' + song.exh_link + ')'
+        description_level += '[EXH ' + str(song.exh_level) + '](' + song.exh_link + ')'
 
     # Add the max if it exists
     if song.max_level is not None:
@@ -98,19 +98,19 @@ def song(song):
 
         # If the max is inf
         if version == 'i':
-            description_level += '[INF ' + song.max_level + '](' + song.max_link + ')'
+            description_level += '[INF ' + str(song.max_level) + '](' + song.max_link + ')'
 
         # If the max is grv
         elif version == 'g':
-            description_level += '[GRV ' + song.max_level + '](' + song.max_link + ')'
+            description_level += '[GRV ' + str(song.max_level) + '](' + song.max_link + ')'
 
         # If the max is hvn
         elif version == 'h':
-            description_level += '[HVN ' + song.max_level + '](' + song.max_link + ')'
+            description_level += '[HVN ' + str(song.max_level) + '](' + song.max_link + ')'
 
         # If the max is max / unknown
         else:
-            description_level += '[MXM ' + song.max_level + '](' + song.max_link + ')'
+            description_level += '[MXM ' + str(song.max_level) + '](' + song.max_link + ')'
 
     # Fetch the artist, if it exists
     artist = '-'
@@ -176,7 +176,7 @@ def db_update_song_vote_start(song=None, name=None):
     # If a song is specified
     if song:
         embed = discord.Embed(title='Database update vote', color=0xf1c40f,
-                              description='Database update requested for ' + song.name + '.\n'
+                              description='Database update requested for ' + song.title + '.\n'
                                           'Please react 👍 to vote for an update.\n'
                                           'Song will be updated if 3 votes (4 reacts) are received in the next minute.')
         embed.set_thumbnail(url=song.jacket)
@@ -212,8 +212,8 @@ def db_update_song_start(song=None, name=None):
     """
     embed = None
     if song:
-        embed = discord.Embed(title='Updating: ' + song.name, color=0x946b9c,
-                              description='The update for \'' + song.name + '\' has started.')
+        embed = discord.Embed(title='Updating: ' + song.title, color=0x946b9c,
+                              description='The update for \'' + song.title + '\' has started.')
         embed.set_thumbnail(url=song.jacket)
 
     else:
@@ -244,8 +244,8 @@ def db_update_song_success(song=None, name=None):
     """
     embed = None
     if song:
-        embed = discord.Embed(title='Update finished for: ' + song.name, color=0xe67e22,
-                              description='The update for \'' + song.name + '\' has finished.')
+        embed = discord.Embed(title='Update finished for: ' + song.title, color=0xe67e22,
+                              description='The update for \'' + song.title + '\' has finished.')
         embed.set_thumbnail(url=song.jacket)
 
     else:
@@ -277,7 +277,7 @@ def db_update_song_vote_success(song=None, name=None):
     if song:
         embed = discord.Embed(title='Database update started', color=0xe67e22,
                               description='Enough votes were received.\n'
-                                          'Now updating \'' + song.name + '\'.\n'
+                                          'Now updating \'' + song.title + '\'.\n'
                                           'Please refer to the bot\'s game status for status.')
         embed.set_thumbnail(url=song.jacket)
 
@@ -338,7 +338,7 @@ def db_update_song_vote_failed(song=None, name=None, react=None):
     embed = None
     if song:
         embed = discord.Embed(title='Song update vote failed', color=0xe74c3c,
-                              description='Not enough votes were received. \'' + song.name + '\' will not be updated. \n'
+                              description='Not enough votes were received. \'' + song.title + '\' will not be updated. \n'
                                           'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
 
     else:

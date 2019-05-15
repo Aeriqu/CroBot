@@ -4,7 +4,7 @@
 #
 
 id_parse = r'/(\d+)sort.js'
-jacket = r'(/\d+/jacket/\d+[em]....)'
+jacket = r'(/\d+/jacket/\d+[e]....)'
 link = r'sdvx\.in/\d+/(\d+)[naeighmv]'
 
 
@@ -33,5 +33,6 @@ video_link = r'href=(\S+youtube\S+)'
 # Regex to be used for sdvxin commands
 query = r'(!sdvxin\s)(.*)'
 update = r'(!sdvxin\supdate\s)(.*)'
+random = r'!sdvxin\srandom\s(\d{1,2})'
 song_id = r'0\d{4}'
 version = r'\d{5}(.)'

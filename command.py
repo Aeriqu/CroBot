@@ -54,7 +54,7 @@ class Command(object):
         return decorator
 
 
-    async def do(self, message):
+    async def do(self, client, message):
         """
         do: Runs the function based off the command
             Also checks if the user is rate limited
@@ -70,7 +70,8 @@ class Command(object):
 
                 for com, func in self.commands.items():
                     if com in content:
-                        await func(message)
+                        await func(client, message)
+                        break
             # If rate limited, send the limited embed
             else:
                 await message.channel.send(embed=await self.rate_limit.embed_limited(message))

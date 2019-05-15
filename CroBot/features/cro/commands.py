@@ -11,9 +11,10 @@ cro_command = Command('!cro')
 
 
 @cro_command.register('help')
-async def help(message):
+async def help(client, message):
     """
     help: Sends the help embed information
+    :param client: Not used, sent by default from commands
     :param message: The message to reply to
     :return: N/A
     """
@@ -21,9 +22,10 @@ async def help(message):
 
 
 @cro_command.register('github')
-async def github(message):
+async def github(client, message):
     """
     github: Sends the github embed information
+    :param client: Not used, sent by default from commands
     :param message: The message to reply to
     :return: N/A
     """

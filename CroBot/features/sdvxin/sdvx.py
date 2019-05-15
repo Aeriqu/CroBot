@@ -6,6 +6,7 @@
 
 # External imports
 import re
+import random
 from fuzzywuzzy import fuzz
 
 
@@ -67,7 +68,7 @@ async def search_song(query):
             # Only look at the japanese field for fuzz comparisons
         if is_japanese:
             fuzz_value = fuzz.token_set_ratio(song.title, query)
-            if compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value):
+            if await compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value):
                 best_fuzz_ratio = fuzz_value
 
 
@@ -78,13 +79,18 @@ async def search_song(query):
             fuzz_value_romanized = fuzz.token_set_ratio(song.title_romanized.lower(), query.lower())
 
             # Do comparisons for both
-            if compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value_translated):
+            if await compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value_translated):
                 best_fuzz_ratio = fuzz_value_translated
 
-            if compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value_romanized):
+            if await compare_fuzz(song, best_matches, best_fuzz_ratio, fuzz_value_romanized):
                 best_fuzz_ratio = fuzz_value_romanized
 
-    return best_matches
+            # Check if title matches exactly, then just set it equivalent and exit the loop
+            if song.title_translated.lower() == query.lower() or song.title_romanized.lower() == query.lower():
+                best_matches = [song]
+                break
+
+    return list(set(best_matches))
 
 
 async def search_song_id(song_id):
@@ -95,8 +101,8 @@ async def search_song_id(song_id):
              None if it does not exist
     """
     song = None
-    if database.song_exists(song_id):
-        song = database.song(song_id)
+    if await database.song_exists(song_id):
+        song = await database.song(song_id)
 
     return song
 
@@ -110,7 +116,42 @@ async def search_song_link(link):
     """
     # Parse the ID of the song
     song_id = re.search(regex.link, link).group(1)
-    return search_song_id(song_id)
+    return await search_song_id(song_id)
+
+
+async def fetch_random(level=None):
+    """
+    fetch_random: Returns a random song from the database
+    :return: Song object
+             None if there is nothing in the database
+    """
+    # Fetch the full list of songs
+    song_list = await database.song_list()
+
+    # If a level is specified
+    if level is not None:
+        song_limited_list = []
+        for song in song_list:
+            if str(song.nov_level) == level or str(song.adv_level) == level or str(song.exh_level) == level or str(song.max_level) == level:
+                song_limited_list.append(song)
+
+        # If at least one song has been found, return the list
+        if len(song_limited_list) > 0:
+            return random.choice(song_limited_list)
+
+        # Otherwise, return None
+        else:
+            return None
+
+    # Otherwise, just fetch a random song
+    else:
+        # If at least one song has been found, return the list
+        if len(song_list) > 0:
+            return random.choice(song_list)
+
+        # Otherwise, return None
+        else:
+            return None
 
 
 ####################
@@ -225,11 +266,3 @@ async def add_song(song_id):
     await database.session_end(session)
 
     return errors
-
-
-####################
-#  [InsertNameFunctions]  #
-####################
-
-
-
