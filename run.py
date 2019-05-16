@@ -30,12 +30,6 @@ async def on_message(message):
     await command.do(client, message)
 
 
-# @client.event
-# async def on_reaction_add(reaction, user):
-#     # todo: add checks for sdvx.in user voting
-#     print('hawa')
-
-
 # Hacked in for personal server role permissions
 GVM_SERVER_ID = 393603672778604544
 @client.event
