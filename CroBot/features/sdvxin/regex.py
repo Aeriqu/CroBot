@@ -4,7 +4,7 @@
 #
 
 id_parse = r'/(\d+)sort.js'
-jacket_data = r'(/\d+/jacket/\d+[e]....)'
+jacket_data = r'(/\d+/jacket/\d+[eighv]....)'
 jacket_sort = r'(/\d+/jacket/\d+[ighmv]....)'
 link = r'sdvx\.in/\d+/(\d+)[naeighmv]'
 
