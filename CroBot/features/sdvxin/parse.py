@@ -50,9 +50,9 @@ async def song_data(raw_data):
     # Iterate through the data and find the last jacket
     for line in iterable_data:
         # If a jacket was found
-        if re.search(regex.jacket, line) is not None:
+        if re.search(regex.jacket_data, line) is not None:
             # Set to jacket
-            jacket = 'http://sdvx.in'+re.search(regex.jacket, line).group(1)
+            jacket = 'http://sdvx.in'+re.search(regex.jacket_data, line).group(1)
 
     return jacket
 
@@ -93,6 +93,11 @@ async def song_sort(raw_data):
     sort_dict.update(videos['data'])
     skip_list += videos['lines']
 
+    # Grab the jacket override of the song
+    # An "overriden" jacket will exist in this file
+    jacket = await sort_jacket(iterable_data, skip_list)
+    if jacket is not None:
+        sort_dict.update(jacket['data'])
 
     return sort_dict
 
@@ -258,3 +263,27 @@ async def sort_videos(iterable_data, skip_list):
 
     return videos_dict
 
+
+async def sort_jacket(iterable_data, skip_list):
+    """
+    sort_jacket: Obtains jacket which might be overriden in sort
+    :param iterable_data: The data needed to iterate through to find the difficulties
+    :param skip_list: The list of lines to be skipped since they were used for other purposes
+    :return: A dictionary containing jacket override information
+             None if a jacket was not found
+    """
+    # Dictionary containing jacket information
+    jacket_dict = None
+
+    # Iterate through the data and find the the difficulty information
+    for line_number, line in enumerate(iterable_data):
+        # If the line should be skipped, then skip it
+        if line_number in skip_list:
+            continue
+
+        # If a jacket was found
+        if re.search(regex.jacket_sort, line) is not None:
+            jacket_dict = {'data': {'jacket': 'http://sdvx.in' + re.search(regex.jacket_sort, line).group(1)}}
+            return jacket_dict
+
+    return jacket_dict

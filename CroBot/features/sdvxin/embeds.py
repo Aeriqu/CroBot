@@ -90,8 +90,9 @@ def song(song):
 
     # Add the max if it exists
     if song.max_level is not None:
-        # Add a continuation hyphen to match formatting
-        description_level += ' - '
+        # If the exhaust existed, add a continuation hyphen to match formatting
+        if song.exh_level is not None:
+            description_level += ' - '
 
         # Fetch the difficulty version and then add the respective version
         version = re.search(regex.version, song.max_link).group(1)
@@ -107,6 +108,10 @@ def song(song):
         # If the max is hvn
         elif version == 'h':
             description_level += '[HVN ' + str(song.max_level) + '](' + song.max_link + ')'
+
+        # If the max is hvn
+        elif version == 'v':
+            description_level += '[VVD ' + str(song.max_level) + '](' + song.max_link + ')'
 
         # If the max is max / unknown
         else:
@@ -145,48 +150,6 @@ def song(song):
 
     # Add the video field
     embed.add_field(name='Videos', value=description_videos)
-
-    return embed
-
-
-###################################
-## UPDATE VOTE TO START MESSAGES ##
-###################################
-
-
-def db_update_vote_start():
-    """
-    Returns the general update vote embed message
-    """
-    embed = discord.Embed(title='Database update vote', color=0xf1c40f,
-                       description='sdvx.in database update was requested.\n'
-                                   'Please react 👍 to vote for an update.\n'
-                                   'Database will update if 5 votes (6 reacts) are received in the next minute.')
-
-    return embed
-
-
-def db_update_song_vote_start(song=None, name=None):
-    """
-    Returns the start of vote update embed message
-    Song is specified for existing charts
-    Name is specified for new charts
-    """
-    embed = None
-    # If a song is specified
-    if song:
-        embed = discord.Embed(title='Database update vote', color=0xf1c40f,
-                              description='Database update requested for ' + song.title + '.\n'
-                                          'Please react 👍 to vote for an update.\n'
-                                          'Song will be updated if 3 votes (4 reacts) are received in the next minute.')
-        embed.set_thumbnail(url=song.jacket)
-
-    # If name is specified
-    else:
-        embed = discord.Embed(title='Database update vote', color=0xf1c40f, description='Database update requested for '
-                                    '[' + name + '](' + name + ')\n'
-                                    'Please react 👍 to vote for an update.\n '
-                                    'Song will be updated if 3 votes (4 reacts) are received in the next minute.')
 
     return embed
 
@@ -255,46 +218,9 @@ def db_update_song_success(song=None, name=None):
     return embed
 
 
-## VOTE MESSAGES
-
-
-def db_update_vote_success():
-    """
-    Returns the general update vote successful embed message
-    """
-    embed = discord.Embed(title='Database update started', color=0xe67e22,
-                       description='Enough votes were received.\n'
-                                   'Now updating database. Please refer to the bot\'s game status for status.')
-
-    return embed
-
-
-def db_update_song_vote_success(song=None, name=None):
-    """
-    Returns the vote successful update embed message
-    """
-    embed = None
-    if song:
-        embed = discord.Embed(title='Database update started', color=0xe67e22,
-                              description='Enough votes were received.\n'
-                                          'Now updating \'' + song.title + '\'.\n'
-                                          'Please refer to the bot\'s game status for status.')
-        embed.set_thumbnail(url=song.jacket)
-
-    else:
-        embed = discord.Embed(title='Database update started', color=0xe67e22,
-                              description='Enough votes were received.\n'
-                                          'Now updating \'' + name + '\'.\n'
-                                          'Please refer to the bot\'s game status for status.')
-
-    return embed
-
-
 #################################
-## UPDATE/VOTE FAILED MESSAGES ##
+##    UPDATE FAILED MESSAGES   ##
 #################################
-
-## UPDATE MESSAGES
 
 
 def db_update_failed(errors):
@@ -318,32 +244,4 @@ def db_update_failed(errors):
 
     embed = discord.Embed(title='Database update failure', color=0xe74c3c,
                           description=description)
-    return embed
-
-
-## VOTE MESSAGES
-
-
-def db_update_vote_failed(react):
-    embed = discord.Embed(title='Database update vote failed', color=0xe74c3c,
-                       description='Not enough votes were received. Database will not be updated. \n'
-                                   'Only ' + str(react.count - 1) + ' votes were received. 5 were required.')
-    return embed
-
-
-def db_update_song_vote_failed(song=None, name=None, react=None):
-    """
-    Returns the vote failed update embed message
-    """
-    embed = None
-    if song:
-        embed = discord.Embed(title='Song update vote failed', color=0xe74c3c,
-                              description='Not enough votes were received. \'' + song.title + '\' will not be updated. \n'
-                                          'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
-
-    else:
-        embed = discord.Embed(title='Song update vote failed', color=0xe74c3c,
-                              description='Not enough votes were received. \'' + name + '\' will not be updated. \n'
-                                          'Only ' + str(react.count - 1) + ' votes were received. 3 were required.')
-
     return embed

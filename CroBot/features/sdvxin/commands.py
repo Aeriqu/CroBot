@@ -18,18 +18,6 @@ from CroBot.features.sdvxin import sdvx, embeds, regex
 sdvx_db_update = False
 
 
-# Read the configuration file and fetch configuration items
-config = configparser.ConfigParser()
-config.read('settings.ini')
-# OWNER_ID is used for overrides
-OWNER_ID = config['sdvx']['owner_id']
-# VOTE_TIMEOUT is used for voting purposes
-# TODO: Transition voting to on reaction
-VOTE_TIMEOUT = config['sdvx']['vote_timeout']
-# VOTE_REQUIRED is the number of votes required to proceed
-VOTE_REQUIRED = config['sdvx']['vote_required']
-
-
 # Command tracker
 sdvx_commands = Command('!sdvxin')
 
@@ -103,8 +91,6 @@ async def update(client, message):
     :return: N/A
     """
     global sdvx_db_update
-
-    # TODO: IMPLEMENT VOTING AND OWNER OVERRIDE
 
     # If there already is an update going on
     if await ongoing_update(message):
@@ -250,6 +236,28 @@ async def search(message):
     query = re.search(regex.query, message.content).group(2)
 
     if query is not None:
+        # If a song_id was passed, fetch the song and send the embed if it exists.
+        # If it doesn't exist, continue down to main query
+        if re.search(regex.song_id, message.content) is not None:
+            song_id = re.search(regex.song_id, message.content).group(0)
+            song = await sdvx.search_song_id(song_id)
+
+            if song is not None:
+                await message.channel.send(embed=embeds.song(song))
+                return
+
+        # If a link was passed, fetch the song and send the embed if it exists.
+        # If it doesn't exist, continue down to main query
+        elif re.search(regex.link, message.content) is not None:
+            link = re.search(regex.link, message.content).group(0)
+            song = await sdvx.search_song_link(link)
+
+            if song is not None:
+                await message.channel.send(embed=embeds.song(song))
+                return
+
+        # Main query searching
+        # Fetch a song_list based on the query
         song_list = await sdvx.search_song(query)
 
         # If there's only one song, just simply return the only existing song
