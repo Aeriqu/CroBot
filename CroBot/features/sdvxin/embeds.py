@@ -149,7 +149,8 @@ def song(song):
         description_videos += '[NO FX](' + song.video_og + ')'
 
     # Add the video field
-    embed.add_field(name='Videos', value=description_videos)
+    if song.video_play is not None or song.video_nofx is not None or song.video_og is not None:
+        embed.add_field(name='Videos', value=description_videos)
 
     return embed
 
