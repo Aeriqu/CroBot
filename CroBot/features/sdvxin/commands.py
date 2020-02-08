@@ -19,7 +19,7 @@ sdvx_db_update = False
 
 
 # Command tracker
-sdvx_commands = Command('!sdvxin')
+sdvx_command = Command('!sdvxin')
 
 
 ######################
@@ -82,7 +82,7 @@ async def update_song(song, message):
     await error_check(errors, message_update, song)
 
 
-@sdvx_commands.register('update')
+@sdvx_command.register('update')
 async def update(client, message):
     """
     update: For the request to update the database
@@ -176,7 +176,7 @@ async def update(client, message):
 ######################
 
 
-@sdvx_commands.register('random')
+@sdvx_command.register('random')
 async def random(client, message):
     """
     random: The random query for sdvx, obtains a random song and sends it as an embed
@@ -213,7 +213,7 @@ async def random(client, message):
             await search(message)
 
 
-@sdvx_commands.register('')
+@sdvx_command.register('')
 async def default(client, message):
     """
     default: The default query for sdvx.in, it should have a search query behind it

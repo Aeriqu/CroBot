@@ -12,9 +12,12 @@ command = Command()
 
 # Register commands from features
 from CroBot.features.cro.commands import cro_command
-from CroBot.features.sdvxin.commands import sdvx_commands
+from CroBot.features.sdvxin.commands import sdvx_command
+from CroBot.features.eamuse.commands import eamuse_command
+
 command.register_all(cro_command)
-command.register_all(sdvx_commands)
+command.register_all(sdvx_command)
+command.register_all(eamuse_command)
 
 
 @client.event
