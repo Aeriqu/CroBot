@@ -15,6 +15,8 @@ def help():
                                       '!sdvxin random [number] - Returns a random song from the sdvx.in database with the specified level [number]\n'
                                       '!sdvxin update - Updates the sdvx.in database; Doesn\'t overwrite existing songs\n'
                                       '!sdvxin update songTitle/songID/URL - Updates a specific song and overwrites all data for it\n'
+                                      '\neamuse commands:\n'
+                                      '!eamuse maintenance - Returns eamusement status for the day\n'
                                       '\ncro commands:\n'
                                       '!cro help - Returns this message\n'
                                       '!cro github - Provides the github link for Cro')
