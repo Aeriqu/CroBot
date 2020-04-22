@@ -105,9 +105,9 @@ async def transliterate(text):
     transliterated = ''
 
     # Loop through the split up parts, find equivalent hiragana, and add it to the transliterated string
-    for list in split:
-        if len(list) > 0:
-            characters = list.split('/')
+    for word in split:
+        if len(word) > 0:
+            characters = word.split('/')
             transliterated += transliterate_pick_best(characters)
 
     # Convert the hiragana string into a romaji string then return it
