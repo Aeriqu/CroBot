@@ -34,7 +34,7 @@ source](http://www.phontron.com/kytea/#download).
 sdvxin:
 
 1. Obtain a kytea model, name it ``model.bin``, and place it in the same directory as ``run.py``
-2. Run setup.py to initialize the database and download the metadata from sdvx.in
+2. Run ``db_init.py`` to initialize the database and download the metadata from sdvx.in
 3. Edit the configuration file for an api key for azure's cognitive translation features
 
 
