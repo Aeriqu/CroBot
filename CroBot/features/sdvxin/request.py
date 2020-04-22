@@ -172,10 +172,10 @@ async def song_ids():
              If there are any errors, errors is added to the dictionary with a list of errors that occurred
     """
     # A list of all the song lists to iterate through
-    song_lists = ['http://sdvx.in/files/index.js', 'http://sdvx.in/sort/sort_a.js', 'http://sdvx.in/sort/sort_k.js', 'http://sdvx.in/sort/sort_s.js',
-                  'http://sdvx.in/sort/sort_t.js', 'http://sdvx.in/sort/sort_n.js', 'http://sdvx.in/sort/sort_h.js',
-                  'http://sdvx.in/sort/sort_m.js', 'http://sdvx.in/sort/sort_y.js', 'http://sdvx.in/sort/sort_r.js',
-                  'http://sdvx.in/sort/sort_w.js', 'http://sdvx.in/files/del.js']
+    song_lists = ['https://sdvx.in/files/index.js', 'https://sdvx.in/sort/sort_a.js', 'https://sdvx.in/sort/sort_k.js', 'https://sdvx.in/sort/sort_s.js',
+                  'https://sdvx.in/sort/sort_t.js', 'https://sdvx.in/sort/sort_n.js', 'https://sdvx.in/sort/sort_h.js',
+                  'https://sdvx.in/sort/sort_m.js', 'https://sdvx.in/sort/sort_y.js', 'https://sdvx.in/sort/sort_r.js',
+                  'https://sdvx.in/sort/sort_w.js', 'https://sdvx.in/files/del.js']
 
     # The dictionary to hold the song_ids list (and potentially errors)
     # The reason a dictionary is used so that it can be easily seen if errors was added or not
