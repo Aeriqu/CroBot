@@ -186,18 +186,18 @@ async def song_ids():
     errors = []
 
     # Iterate through all of the song lists
-    for list in song_lists:
+    for song_list in song_lists:
         # Attempt to fetch raw javascript data
-        raw_data = await attempt_link_get(list)
+        raw_data = await attempt_link_get(song_list)
         # Checks to see if the fetching was successful to some degree
         if raw_data is not None:
             try:
                 song_dict['song_ids'] += await parse.song_ids(raw_data)
             except:
-                errors.append('Error (Parse SongID List): ' + list)
+                errors.append('Error (Parse SongID List): ' + song_list)
         # If the GET request failed
         else:
-            errors.append('Error (GET SongID List): ' + list)
+            errors.append('Error (GET SongID List): ' + song_list)
 
     # Add errors to song_dict if there are any errors
     if len(errors) > 0:
