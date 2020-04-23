@@ -33,10 +33,10 @@ source](http://www.phontron.com/kytea/#download).
 #### Features
 sdvxin:
 
-1. Run ``recreate_db()`` from ``CroBot/features/sdvxin/database`` to create an sqlite3 database
-2. Run ``update()`` from ``CroBot/features/sdvxin/sdvx`` to fetch songs for the database
+1. Obtain a kytea model, name it ``model.bin``, and place it in the same directory as ``run.py``
+2. Run ``db_init.py`` to initialize the database and download the metadata from sdvx.in
 3. Edit the configuration file for an api key for azure's cognitive translation features
-4. Obtain a kytea model, name it ``model.bin``, and place it in the same directory as ``run.py``
+
 
 ## License
 
