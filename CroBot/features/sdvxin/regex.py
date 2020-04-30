@@ -3,7 +3,7 @@
 # Contains all of the regex strings to allow the main scripts to be less cluttered
 #
 
-id_parse = r'/(\d+)sort.js'
+id_parse = r'/js/(\d{5})(sort)?\.js'
 jacket_data = r'(/\d+/jacket/\d+[eighv]....)'
 jacket_sort = r'(/\d+/jacket/\d+[ighmv]....)'
 link = r'sdvx\.in/\d+/(\d+)[naeighmv]'
