@@ -32,6 +32,7 @@ jobs:
           --cache-from=$IMAGE_ID:build \
           --tag $IMAGE_NAME:build .
           docker build --target runtime \
+          --cache-from=$IMAGE_ID:build \
           --cache-from=$IMAGE_ID:latest \
           --tag $IMAGE_NAME .
 
