@@ -30,7 +30,7 @@ source](http://www.phontron.com/kytea/#download).
 
 1. Install [Docker](https://docs.docker.com/get-docker/)
 2. Set up a settings.ini file using [the one in the repo](https://github.com/Aeriqu/CroBot/blob/master/settings.ini) as a template.
-3. Run ``docker run -d -v crobot_db:/app/sdvxCharts.db -v /path/to/your/settings.ini:/app/settings.ini aeriqu/crobot``
+3. Run ``docker run -d -v /path/to/anywhere/sdvxCharts.db:/app/sdvxCharts.db -v /path/to/your/settings.ini:/app/settings.ini aeriqu/crobot``
 
 ### Traditional setup
 
