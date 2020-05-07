@@ -22,13 +22,17 @@ jobs:
 
       - name: Build image
         run: |
-          docker pull ${{ github.repository }}:build  || true
-          docker pull ${{ github.repository }}:latest || true
+          IMAGE_ID=${{ github.repository }}
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          docker pull $IMAGE_ID:build  || true
+          docker pull $IMAGE_ID:latest || true
           docker build --target build \
-          --cache-from=${{ github.repository }}:build \
+          --cache-from=$IMAGE_ID:build \
           --tag $IMAGE_NAME:build .
           docker build --target runtime \
-          --cache-from=${{ github.repository }}:latest \
+          --cache-from=$IMAGE_ID:latest \
           --tag $IMAGE_NAME .
 
       - name: Push image
