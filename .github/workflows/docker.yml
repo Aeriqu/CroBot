@@ -3,7 +3,7 @@ name: Docker
 on: [push, pull_request]
 
 env:
-  IMAGE_NAME: aeriqu/crobot
+  IMAGE_NAME: crobot
 
 jobs:
   push:
@@ -25,8 +25,9 @@ jobs:
 
       - name: Push image
         run: |
+          IMAGE_ID=${{ github.repository }}
           # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_NAME | tr '[A-Z]' '[a-z]')
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
           # Strip git ref prefix from version
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
