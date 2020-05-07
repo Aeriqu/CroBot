@@ -3,7 +3,7 @@ name: Docker
 on: [push, pull_request]
 
 env:
-  IMAGE_NAME: aeriqu/crobot
+  IMAGE_NAME: crobot
 
 jobs:
   # Run tests.
@@ -38,7 +38,7 @@ jobs:
       - name: Push image
         run: |
           IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
-          
+
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
@@ -54,5 +54,5 @@ jobs:
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
-          docker tag image $IMAGE_ID:$VERSION
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
