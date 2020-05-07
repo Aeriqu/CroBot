@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import configparser
 import discord
 from discord.utils import get
