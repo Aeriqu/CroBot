@@ -73,8 +73,9 @@ async def song_sort(raw_data):
     skip_list = [0]
 
     # Grab the title of the chart
-    title = await sort_title(iterable_data)
-    sort_dict.update(title)
+    title = await sort_title(iterable_data, skip_list)
+    sort_dict.update(title['data'])
+    skip_list += title['lines']
     # TODO: Add error checking for title
     # {'song_id': '04378', 'title': 'ファイナルレター', 'title_translated': 'Error 401000: The request is not authorized because credentials are missing or invalid.', 'title_pronunciation': 'Error 401000: The request is not authorized because credentials are missing or invalid.', 'artist': '', 'nov_link': 'http://sdvx.in/04/04378n.htm', 'nov_level': '06', 'adv_level': '12', 'adv_link': 'http://sdvx.in/04/04378a.htm', 'exh_level': '16', 'exh_link': 'http://sdvx.in/04/04378e.htm', 'max_level': '18', 'max_link': 'http://sdvx.in/04/04378m.htm', 'video_play': 'https://www.youtube.com/watch?v=WMsPky3YQRQ', 'video_nofx': 'https://www.youtube.com/watch?v=wQiPB9V8a38', 'jacket': 'http://sdvx.in/04/jacket/04378m.png'}
 
@@ -107,36 +108,44 @@ async def song_sort(raw_data):
 ##############################
 
 
-async def sort_title(iterable_data):
+async def sort_title(iterable_data, skip_list):
     """
     sort_title: Fetches title information from iterable_data, although just the first line.
     :param iterable_data: The data needed to find the title
-    :return: A dictionary containing the title, translated title, and pronunciation of title
+    :param skip_list: The list of lines to be skipped since they were used for other purposes
+    :return: A dictionary containing the title information (title, translated title, pronunciation of title) and lines used
     """
     # Dictionary containing the title
-    title_dict = {'title': {}}
-    # Fetch the first line to grab title information
-    line = iterable_data[0]
-    # Parse the title from the line
-    # Removes any html tags and decodes any html characters
-    title = re.sub(r'<[^<]+?>', '', html.unescape(re.search(regex.title, line).group(2)))
-    title_dict['title'] = title
+    title_dict = {'data': {'title': '-', 'title_translated': '-', 'title_romanized': '-'}, 'lines':[]}
 
-    # If the title contains Japanese text to be translated
-    if re.search(regex.japanese, title) is not None:
+    for line_number, line in enumerate(iterable_data):
+        # If the line should be skipped, then skip it
+        if line_number in skip_list:
+            continue
 
-        # Obtain the English translation
-        title_dict['title_translated'] = await translate.translate(title)
+        # If the title line is found
+        if re.search(regex.title, line) is not None:
+            title_dict['lines'].append(line_number)
 
+            # Parse the title from the line
+            title = html.unescape(re.search(regex.title, line).group(2))
+            title_dict['data']['title'] = title
 
-        # Obtain the Japanese pronunciation
-        title_dict['title_romanized'] = await translate.transliterate(title)
+            # If the title contains Japanese text to be translated
+            if re.search(regex.japanese, title) is not None:
 
-    # If the title does not contain Japanese
-    else:
-        # Set both title_translated and title_pronunciation to the original title for database purposes
-        title_dict['title_translated'] = title
-        title_dict['title_romanized'] = title
+                # Obtain the English translation
+                title_dict['data']['title_translated'] = await translate.translate(title)
+
+                # Obtain the Japanese pronunciation
+                title_dict['data']['title_romanized'] = await translate.transliterate(title)
+
+            # If the title does not contain Japanese
+            else:
+                # Set both title_translated and title_pronunciation to the original title for database purposes
+                title_dict['data']['title_translated'] = title
+                title_dict['data']['title_romanized'] = title
+            break
 
     return title_dict
 
