@@ -10,7 +10,7 @@ link = r'sdvx\.in/\d+/(\d+)[naeighmv]'
 
 
 # Regex to be used for parse_chart
-title = r'(\d+)\s+(.+)' # Group 1 is sdvx.in's id for the song; Group 2 is the song name
+title = r'TBR(\d{5}).*document.title="(.*)\s\[(NOV|ADV|EXH|MXM|INF|GRV|HVN|VVD)\]' # Group 1 is sdvx.in's id for the song; Group 2 is the song name
 artist = r'ARTIST\d*.*2>.*/\s(.*)<'
 sort_exclude = r'SORT\d*' # Used to filter out the sort line which the dif regex catches
 
