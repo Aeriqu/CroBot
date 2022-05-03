@@ -2,6 +2,6 @@ discord.py[voice]
 sqlalchemy
 fuzzywuzzy[speedup]
 unidecode
-aiohttp
+aiohttp[speedups]
 kytea
 romkan
