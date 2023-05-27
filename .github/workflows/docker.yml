@@ -1,0 +1,60 @@
+name: Docker
+
+on: [push, pull_request]
+
+env:
+  IMAGE_NAME: crobot
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Docker Login
+        env:
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          echo "${DOCKER_PASSWORD}" | docker login -u ${DOCKER_USERNAME} --password-stdin
+
+      - name: Build image
+        run: |
+          IMAGE_ID=${{ github.repository }}
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          docker pull $IMAGE_ID:build  || true
+          docker pull $IMAGE_ID:latest || true
+          docker build --target build \
+          --cache-from=$IMAGE_ID:build \
+          --tag $IMAGE_NAME:build .
+          docker build --target runtime \
+          --cache-from=$IMAGE_ID:build \
+          --cache-from=$IMAGE_ID:latest \
+          --tag $IMAGE_NAME .
+
+      - name: Push image
+        run: |
+          IMAGE_ID=${{ github.repository }}
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "master" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker tag $IMAGE_NAME:build $IMAGE_ID:build
+          docker push $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:build

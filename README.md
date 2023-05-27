@@ -24,7 +24,15 @@ To properly use kytea, a model file is required. You can obtain one from the [ky
 source](http://www.phontron.com/kytea/#download).
 
 
-### Set up
+## Set up
+
+### Docker setup
+
+1. Install [Docker](https://docs.docker.com/get-docker/)
+2. Set up a settings.ini file using [the one in the repo](https://github.com/Aeriqu/CroBot/blob/master/settings.ini) as a template.
+3. Run ``docker run -d -v /path/to/anywhere/sdvxCharts.db:/app/sdvxCharts.db -v /path/to/your/settings.ini:/app/settings.ini aeriqu/crobot``
+
+### Traditional setup
 
 #### General setup
 
@@ -34,8 +42,9 @@ source](http://www.phontron.com/kytea/#download).
 sdvxin:
 
 1. Obtain a kytea model, name it ``model.bin``, and place it in the same directory as ``run.py``
-2. Run ``db_init.py`` to initialize the database and download the metadata from sdvx.in
-3. Edit the configuration file for an api key for azure's cognitive translation features
+2. Run ``db_init.py`` to initialize the database
+3. Execute ``!sdvxin update`` in a channel with the bot to download the metadata from sdvx.in (this will take a while)
+4. Edit the configuration file for an api key for azure's cognitive translation features
 
 
 ## License
